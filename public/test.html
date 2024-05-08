@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            /* 1 part side, 2 parts center, 1 part side */
+            height: 100vh;
+        }
+
+        .main-content {
+            background-color: #f8f8f8;
+            /* Just for visibility */
+        }
+
+        .left-buttons,
+        .right-buttons {
+            display: flex;
+            justify-content: center;
+            /* Center content horizontally */
+            align-items: center;
+            /* Center content vertically */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-container">
+        <div class="left-buttons">
+            <button>Left Button</button>
+        </div>
+        <div class="main-content">
+            Main Content
+        </div>
+        <div class="right-buttons">
+            <button>Right Button</button>
+        </div>
+    </div>
+
+</body>
+
+</html>
