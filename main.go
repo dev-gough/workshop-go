@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"learn_go/components"
 	"learn_go/db"
 	"log"
 	"math/rand"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/a-h/templ"
 )
 
 type UpdateDifficultyRequest struct {
@@ -179,7 +182,7 @@ func setHeaderMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	database, _ := db.ConnectToDB()
+	/* database, _ := db.ConnectToDB()
 	defer database.Close()
 
 	// Drop all tables
@@ -208,5 +211,12 @@ func main() {
 	http.HandleFunc("/projects/codex", serveCodex)
 	http.HandleFunc("/projects/test", serveTest)
 
+	log.Fatal(http.ListenAndServe(":8080", nil)) */
+
+	http.Handle("/projects/gol", templ.Handler(components.GOLPage()))
+	http.HandleFunc("/projects/test", serveTest)
+
+	fs := http.FileServer(http.Dir("public"))
+	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
