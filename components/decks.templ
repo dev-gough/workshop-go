@@ -1,0 +1,98 @@
+package components
+
+templ Decks() {
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    @Header()
+    <div class="flex justify-center min-h-screen">
+        <div class="container max-w-2/3 flex flex-col border border-gray-300 rounded-lg p-6" hx-get="/api/flashcard/decks"
+            hx-trigger="load" hx-swap="outerHTML">
+            <div class="flex justify-end mb-4">
+                <button id="createButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
+                    onclick="showCreateDeckForm()">
+                    Create
+                </button>
+                <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                    Delete
+                </button>
+            </div>
+
+            <script>
+                const container = document.querySelector('.container');
+
+                function fetchDecks() {
+                    // clear container, but leave both buttons
+                    container.innerHTML = container.children[0].outerHTML;
+                fetch('/api/flashcard/decks')
+                    .then(response => response.json())
+                    .then(decks => {
+                        console.log(decks);
+                        decks.forEach(deck => {
+                            let deckHTML = `
+                        <div class="deck bg-gray-100 rounded-lg p-6 text-center mb-4" id="${deck.id}">
+                            <h3 class="text-lg font-semibold">Deck ${deck.id}: ${deck.name}</h3>
+                        </div>
+                    `;
+                            container.innerHTML += deckHTML; // Append the deck
+                        });
+                    })
+                    .catch(error => console.error('Error fetching decks:', error));
+            }
+
+                function showCreateDeckForm() {
+                    // Check if the form already exists
+                    if (document.getElementById('createDeckForm')) {
+                        return; // Don't create another one
+                    }
+
+                    const createDeckForm = `
+                        <div class="deck bg-gray-100 rounded-lg p-6 text-center mb-4" id="createDeckForm">
+                            <input type="text" id="deckName" placeholder="Deck Name" class="border rounded-md p-2 mb-2" />
+                            <button onclick="removeCreateDeckForm()" class="bg-gray-400 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mr-2">
+                                Cancel
+                            </button>
+                            <button onclick="handleCreateDeck()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Submit
+                            </button>
+                        </div>
+                    `;
+                    container.innerHTML = createDeckForm + container.innerHTML;
+                    document.getElementById('deckName').focus();
+                }
+
+                function removeCreateDeckForm() {
+                    const form = document.getElementById('createDeckForm');
+                    if (form) {
+                        form.remove(); // Remove the form from the DOM
+                    }
+                }
+
+                function handleCreateDeck() {
+                    const deckName = document.getElementById('deckName').value;
+                    if (!deckName) {
+                        alert('Please enter a deck name');
+                        return;
+                    }
+                    console.log('Creating deck:', deckName);
+
+                    fetch('/api/flashcard/createdeck', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: deckName })
+                    })
+                        .then(response => response.json())
+                        .then(deck => {
+                            console.log('Deck created:', deck);
+                            removeCreateDeckForm();
+                            fetchDecks(); // Refresh the deck list
+                        })
+                        .catch(error => console.error('Error creating deck:', error));
+                }
+
+                // Initial trigger
+                fetchDecks();
+            </script>
+        </div>
+    </div>
+}

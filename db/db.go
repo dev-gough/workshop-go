@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	_ "github.com/lib/pq"
 )
@@ -48,21 +49,21 @@ var DecksTable = TableSchema{
 	CreateSQL: `CREATE TABLE IF NOT EXISTS decks (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL
+		);`,
+}
+
+var DeckCardsTable = TableSchema{
+	Name: "deck_cards",
+	CreateSQL: `CREATE TABLE IF NOT EXISTS deck_cards (
+        card_id INT NOT NULL,
+        deck_id INT NOT NULL,
+        PRIMARY KEY (card_id, deck_id),
+        FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+        FOREIGN KEY (deck_id) REFERENCES decks(id) ON DELETE CASCADE
     );`,
 }
 
-var CardDeckTable = TableSchema{
-	Name: "card_deck",
-	CreateSQL: `CREATE TABLE IF NOT EXISTS card_deck (
-    card_id INT,
-    deck_id INT,
-    PRIMARY KEY (card_id, deck_id),
-    FOREIGN KEY (card_id) REFERENCES cards (id) ON DELETE CASCADE,
-    FOREIGN KEY (deck_id) REFERENCES decks (id) ON DELETE CASCADE
-);`,
-}
-
-var CurrentTables = []TableSchema{CardsTable, DecksTable, CardDeckTable}
+var CurrentTables = []TableSchema{CardsTable, DecksTable, DeckCardsTable}
 
 func CreateCard(id int, front string, back string, reviewed int64, difficulty int) (Card, error) {
 	card := Card{
@@ -81,13 +82,13 @@ func CreateCard(id int, front string, back string, reviewed int64, difficulty in
 }
 
 func CreateDeck(id int, name string) (Deck, error) {
-    if id <= 0 || name == "" {
-        return Deck{}, fmt.Errorf("invalid id or name")
-    }
-    return Deck{
-        ID:   id,
-        Name: name,
-    }, nil
+	if id <= 0 || name == "" {
+		return Deck{}, fmt.Errorf("invalid id or name")
+	}
+	return Deck{
+		ID:   id,
+		Name: name,
+	}, nil
 }
 
 func WithPsqlInfo(psqlInfo string) Option {
@@ -106,7 +107,7 @@ func ConnectToDB(opts ...Option) (*sql.DB, error) {
 		opt(defaultOptions)
 	}
 
-	fmt.Printf("Connecting to database with options: %v\n", defaultOptions)
+	//fmt.Printf("Connecting to database with options: %v\n", defaultOptions)
 
 	// I have removed the error handling for the sake of simplicity
 	db, _ := sql.Open("postgres", defaultOptions.psqlInfo)
@@ -162,7 +163,8 @@ func DropAllTables(db *sql.DB) error {
 	for _, table := range tables {
 		if err := DropTable(db, table); err != nil {
 			return fmt.Errorf("error dropping table %s: %v", table, err)
-		}}
+		}
+	}
 	return nil
 }
 
@@ -171,13 +173,14 @@ func InsertCards(db *sql.DB, cards []Card) error {
 		_, err := db.Exec("INSERT INTO cards (front, back, recency, prevdifficulty) VALUES ($1, $2, $3, $4)", card.Front, card.Back, card.Reviewed, card.Difficulty)
 		if err != nil {
 			return err
-		}}
+		}
+	}
 	return nil
 }
 
-func AddCardToDeck(db *sql.DB, cardID, deckID int) error {
+func AddCardToDeck(db *sql.DB, cardID int, deckID int) error {
 	// SQL statement to insert a new relation into the card_deck table
-	query := `INSERT INTO card_deck (card_id, deck_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`
+	query := `INSERT INTO deck_cards (card_id, deck_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`
 
 	// Execute the query with the provided cardID and deckID
 	_, err := db.Exec(query, cardID, deckID)
@@ -188,8 +191,8 @@ func AddCardToDeck(db *sql.DB, cardID, deckID int) error {
 	return nil
 }
 
-func InsertDeck(db *sql.DB, deck Deck) error {
-	_, err := db.Exec("INSERT INTO decks (name) VALUES ($1)", deck.Name)
+func InsertDeck(db *sql.DB, deckName string) error {
+	_, err := db.Exec("INSERT INTO decks (name) VALUES ($1)", deckName)
 	if err != nil {
 		return err
 	}
@@ -215,50 +218,26 @@ func PrintCards(db *sql.DB) error {
 	return nil
 }
 
-// NEW (req. relation func)
-func PrintCardsFromDeck(db *sql.DB, deckID int) error {
-	// Query to select all cards from the provided deck_id
+func PrintCardsInDeck(db *sql.DB, deckID int) error {
 	query := `
-    SELECT c.id, c.front, c.back, c.recency, c.prevdifficulty
-    FROM cards AS c
-    JOIN card_deck AS cd ON c.id = cd.card_id
-    WHERE cd.deck_id = $1;
-    `
+        SELECT cards.* FROM cards
+		JOIN deck_cards ON cards.id = deck_cards.card_id
+		WHERE deck_cards.deck_id = $1;`
 
-
-	// Prepare the query
-	stmt, err := db.Prepare(query)
+	rows, err := db.Query(query, deckID)
 	if err != nil {
-		return fmt.Errorf("error preparing query: %v", err)
-	}
-	defer stmt.Close()
-
-	// Execute the query with the provided deck_id
-	rows, err := stmt.Query(deckID)
-	if err != nil {
-		return fmt.Errorf("error executing query: %v", err)
+		return fmt.Errorf("error querying cards: %w", err)
 	}
 	defer rows.Close()
 
-	fmt.Printf("Rows %s\n", rows.Next())
-	// Loop through the returned rows and print the card information
+	fmt.Printf("Cards in deck %d:\n", deckID)
 	for rows.Next() {
-		fmt.Printf("Got here")
-		var cardID, recency, prevdifficulty int
-		var front, back string
-		if err := rows.Scan(&cardID, &front, &back, &recency, &prevdifficulty); err != nil {
-			return fmt.Errorf("error scanning row: %v", err)
+		var card Card
+		err := rows.Scan(&card.ID, &card.Front, &card.Back, &card.Reviewed, &card.Difficulty)
+		if err != nil {
+			return fmt.Errorf("error scanning card: %w", err)
 		}
-		fmt.Printf("Card ID: %d\n", cardID)
-		fmt.Printf("Front: %s\n", front)
-		fmt.Printf("Back: %s\n", back)
-		fmt.Printf("Recency: %d\n", recency)
-		fmt.Printf("Previous Difficulty: %d\n", prevdifficulty)
-		fmt.Println("-------------------")
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("error iterating through rows: %v", err)
+		fmt.Printf("- ID: %d, Front: %s, Back: %s\n", card.ID, card.Front, card.Back)
 	}
 
 	return nil
@@ -279,3 +258,97 @@ func DeleteCardByID(db *sql.DB, cardID int) error {
 	}
 	return nil
 }
+
+func GetRandomCard(db *sql.DB) (*Card, error) {
+	// 1. Get the total number of cards
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM cards").Scan(&count)
+	if err != nil {
+		return nil, fmt.Errorf("error getting card count: %v", err)
+	}
+
+	// 2. Generate a random ID within the valid range
+	randomID := rand.Intn(count) + 1
+
+	// 3. Fetch the card with the random ID
+	var card Card
+	err = db.QueryRow("SELECT id, front, back FROM cards WHERE id = $1", randomID).Scan(&card.ID, &card.Front, &card.Back)
+	if err != nil {
+		return nil, fmt.Errorf("error getting card: %v", err)
+	}
+
+	return &card, nil
+}
+
+func GetCardsFromDeck(db *sql.DB, deckID int) (*[]Card, error) {
+	// 1. Fetch the cards associated with the deck
+	rows, err := db.Query(`
+        SELECT c.*
+        FROM cards c
+        JOIN deck_cards dc ON c.id = dc.card_id
+        WHERE dc.deck_id = $1
+    `, deckID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting cards for deck: %v", err)
+	}
+	defer rows.Close()
+
+	cards := []Card{}
+
+	// 2. Populate the deck's Cards slice
+	for rows.Next() {
+		var card Card
+		err := rows.Scan(&card.ID, &card.Front, &card.Back, &card.Reviewed, &card.Difficulty)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning card: %v", err)
+		}
+		cards = append(cards, card)
+	}
+
+	return &cards, nil
+}
+
+func GetDecksData(db *sql.DB) (*[]Deck, error) {
+	// 1. Fetch all decks
+	rows, err := db.Query("SELECT * FROM decks")
+	if err != nil {
+		return nil, fmt.Errorf("error getting decks: %v", err)
+	}
+	defer rows.Close()
+
+
+	decks := []Deck{}
+
+	// 2. Populate the decks slice
+	for rows.Next() {
+		var deck Deck
+		err := rows.Scan(&deck.ID, &deck.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning deck: %v", err)
+		}
+		decks = append(decks, deck)
+	}
+
+	return &decks, nil
+}
+
+/* Get all cards from given deck
+
+SELECT c.*
+FROM cards c
+JOIN deck_cards dc ON c.id = dc.card_id
+WHERE dc.deck_id = $1;
+
+*/
+
+/* Get all decks a card is in
+
+SELECT d.*
+FROM decks d
+JOIN deck_cards dc ON d.id = dc.deck_id
+WHERE dc.card_id = $1;
+*/
+
+/*  Insert into deck_cards
+INSERT INTO deck_cards (card_id, deck_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;
+*/

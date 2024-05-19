@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"learn_go/components"
+	"learn_go/components/handlers"
 	"learn_go/db"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/a-h/templ"
 )
@@ -94,42 +94,6 @@ var mockFlashcards = []db.Card{
 	},
 }
 
-func serveStudy(x http.ResponseWriter, y *http.Request) {
-	tmpl := template.Must(template.ParseFiles("public/study.html"))
-	tmpl.Execute(x, nil)
-}
-
-func serveHome(x http.ResponseWriter, y *http.Request) {
-	tmpl := template.Must(template.ParseFiles("public/index.html"))
-	tmpl.Execute(x, nil)
-}
-
-func serveGoL(x http.ResponseWriter, y *http.Request) {
-	tmpl := template.Must(template.ParseFiles("public/gol.html"))
-	tmpl.Execute(x, nil)
-}
-
-func serveCodex(x http.ResponseWriter, y *http.Request) {
-	tmpl := template.Must(template.ParseFiles("public/codex.html"))
-	tmpl.Execute(x, nil)
-}
-
-func serveTest(x http.ResponseWriter, y *http.Request) {
-	tmpl := template.Must(template.ParseFiles("public/test.html"))
-	tmpl.Execute(x, nil)
-}
-
-func getRandomFlashcard(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		randomIndex := rand.Intn(len(mockFlashcards))
-		selectedCard := mockFlashcards[randomIndex]
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(selectedCard)
-	} else {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
 
 func updateDifficulty(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -182,39 +146,29 @@ func setHeaderMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	/* database, _ := db.ConnectToDB()
+	database, _ := db.ConnectToDB()
 	defer database.Close()
 
 	// Drop all tables
 	db.DropAllTables(database)
-	// db.CreateAllTables(database, db.CurrentTables)
-	// db.InsertCards(database, mockFlashcards)
-	// db.AddCardToDeck(database, 1, 1)
-	// db.PrintCards(database)
-	// db.PrintCardsFromDeck(database, 1)
-
-	fs := http.FileServer(http.Dir("public"))
-	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))
-
-	// Handle route for main page
-	http.HandleFunc("/home", serveHome)
-
-	// Handle routes for flashcards
-	http.HandleFunc("/projects/flashcards", serveStudy)
-	http.HandleFunc("/api/flashcard", getRandomFlashcard)
-	http.HandleFunc("/api/rate/flashcard", updateDifficulty)
-
-	// Handle GoL route
-	http.HandleFunc("/projects/gol", serveGoL)
-
-	// Handle Codex route
-	http.HandleFunc("/projects/codex", serveCodex)
-	http.HandleFunc("/projects/test", serveTest)
-
-	log.Fatal(http.ListenAndServe(":8080", nil)) */
+	db.CreateAllTables(database, db.CurrentTables)
+	db.InsertCards(database, mockFlashcards)
+	db.InsertDeck(database, "Countries and Capitals")
+	db.InsertDeck(database, "Geography")
+	db.AddCardToDeck(database, 1, 1)
+	db.AddCardToDeck(database, 2, 1)
+	db.AddCardToDeck(database, 3, 2)
 
 	http.Handle("/projects/gol", templ.Handler(components.GOLPage()))
-	http.HandleFunc("/projects/test", serveTest)
+	http.Handle("/home", templ.Handler(components.Home()))
+	http.Handle("/projects/flashcard", templ.Handler(components.Decks()))
+	http.Handle("/projects/flashcard/random", templ.Handler(components.Flashcard()))
+
+	http.HandleFunc("/api/flashcard", handlers.RandomFlashcardHandler(database))
+	http.HandleFunc("/api/flashcard/rate", handlers.RateFlashcardHandler(database))
+	http.HandleFunc("/api/flashcard/cards/", handlers.GetCardsForDeckHandler(database))
+	http.HandleFunc("/api/flashcard/decks", handlers.GetDecksHandler(database))
+	http.HandleFunc("/api/flashcard/createdeck", handlers.NewDeckHandler(database))
 
 	fs := http.FileServer(http.Dir("public"))
 	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))

@@ -1,0 +1,46 @@
+package components
+
+templ Home() {
+    <body class="bg-gray-400">
+        <script src="https://unpkg.com/htmx.org@1.9.10"
+            integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+            crossorigin="anonymous"></script>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.18/dist/tailwind.min.css" rel="stylesheet"/>
+        <div class="mx-auto">
+            @Header() 
+
+            <div class="min-h-screen flex flex-col">
+                <div class="flex-1 bg-blue-200" style="height: 50vh;">
+                    <div class="text-xl font-bold text-white p-5">Dashboard Area</div>
+                    <div class="p-5 text-white">
+                        Content that you can customize for tracking various metrics or statuses.
+                    </div>
+                </div>
+                <div class="flex w-full" style="height: 50vh;">
+                    <div class="w-1/2 bg-green-200 p-5">
+                        <div class="text-xl font-bold">Projects</div>
+                        <ul class="list-disc list-inside">
+                            <li class="my-3">
+                                <a class="p-1 bg-green-300 hover:bg-green-400 rounded-md" href="/projects/flashcard">Flashcards</a>
+                            </li>
+                            <li class="my-3">
+                                <a class="p-1 bg-green-300 hover:bg-green-400 rounded-md" href="/projects/flashcard/random">Random Flashcard</a>
+                            </li>
+                            <li class="my-3">
+                                <a class="p-1 bg-green-300 hover:bg-green-400 rounded-md" href="/projects/gol">Game of Life</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="w-1/2 bg-red-200 p-5">
+                        <div class="text-xl font-bold">Transactions</div>
+                        <ul class="list-disc list-inside">
+                            <li>Transaction 1</li>
+                            <li>Transaction 2</li>
+                            <li>Transaction 3</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+}
