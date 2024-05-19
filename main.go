@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"learn_go/components"
 	"learn_go/components/handlers"
 	"learn_go/db"
 	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
