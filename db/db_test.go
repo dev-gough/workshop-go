@@ -418,6 +418,7 @@ func TestPrintCardsInDeck(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
 // working
 func TestGetRandomCard(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
@@ -494,156 +495,156 @@ func TestGetRandomCard(t *testing.T) {
 }
 
 func TestGetCardsFromDeck(t *testing.T) {
-    t.Run("Success", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("Success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // 1. Mock successful query with expected deck ID and cards
-        deckID := 123 // Example deck ID
-        expectedCards := []Card{
-            {ID: 1, Front: "Front 1", Back: "Back 1", Reviewed: 1234567890, Difficulty: 5},
-            {ID: 2, Front: "Front 2", Back: "Back 2", Reviewed: 9876543210, Difficulty: 4},
-        }
+		// 1. Mock successful query with expected deck ID and cards
+		deckID := 123 // Example deck ID
+		expectedCards := []Card{
+			{ID: 1, Front: "Front 1", Back: "Back 1", Reviewed: 1234567890, Difficulty: 5},
+			{ID: 2, Front: "Front 2", Back: "Back 2", Reviewed: 9876543210, Difficulty: 4},
+		}
 
-        rows := sqlmock.NewRows([]string{"id", "front", "back", "reviewed", "difficulty"})
-        for _, card := range expectedCards {
-            rows.AddRow(card.ID, card.Front, card.Back, card.Reviewed, card.Difficulty)
-        }
-        mock.ExpectQuery(regexp.QuoteMeta(`
+		rows := sqlmock.NewRows([]string{"id", "front", "back", "reviewed", "difficulty"})
+		for _, card := range expectedCards {
+			rows.AddRow(card.ID, card.Front, card.Back, card.Reviewed, card.Difficulty)
+		}
+		mock.ExpectQuery(regexp.QuoteMeta(`
             SELECT c.*
             FROM cards c
             JOIN deck_cards dc ON c.id = dc.card_id
             WHERE dc.deck_id = $1
         `)).WithArgs(deckID).WillReturnRows(rows)
 
-        // 2. Call the function
-        cards, err := GetCardsFromDeck(db, deckID)
+		// 2. Call the function
+		cards, err := GetCardsFromDeck(db, deckID)
 
-        // 3. Assert expected results
-        assert.NoError(t, err)
-        assert.NotNil(t, cards)
-        assert.Equal(t, expectedCards, *cards)
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// 3. Assert expected results
+		assert.NoError(t, err)
+		assert.NotNil(t, cards)
+		assert.Equal(t, expectedCards, *cards)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 
-    t.Run("QueryError", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("QueryError", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // Mock an error when fetching cards
-        mock.ExpectQuery(regexp.QuoteMeta(`
+		// Mock an error when fetching cards
+		mock.ExpectQuery(regexp.QuoteMeta(`
             SELECT c.*
             FROM cards c
             JOIN deck_cards dc ON c.id = dc.card_id
             WHERE dc.deck_id = $1
         `)).WillReturnError(fmt.Errorf("query error"))
 
-        // Call the function and expect an error
-        cards, err := GetCardsFromDeck(db, 123)
-        assert.Error(t, err)
-        assert.Nil(t, cards)
-        assert.EqualError(t, err, "error getting cards for deck: query error")
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// Call the function and expect an error
+		cards, err := GetCardsFromDeck(db, 123)
+		assert.Error(t, err)
+		assert.Nil(t, cards)
+		assert.EqualError(t, err, "error getting cards for deck: query error")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 
-    t.Run("ScanError", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("ScanError", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // Mock invalid data returned from the database that would fail Scan()
-        mock.ExpectQuery(regexp.QuoteMeta(`
+		// Mock invalid data returned from the database that would fail Scan()
+		mock.ExpectQuery(regexp.QuoteMeta(`
             SELECT c.*
             FROM cards c
             JOIN deck_cards dc ON c.id = dc.card_id
             WHERE dc.deck_id = $1
         `)).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("invalid"))
 
-        // Call the function and expect an error
-        cards, err := GetCardsFromDeck(db, 123)
-        assert.Error(t, err)
-        assert.Nil(t, cards)
-        assert.Contains(t, err.Error(), "error scanning card:")
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// Call the function and expect an error
+		cards, err := GetCardsFromDeck(db, 123)
+		assert.Error(t, err)
+		assert.Nil(t, cards)
+		assert.Contains(t, err.Error(), "error scanning card:")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestGetDecksData(t *testing.T) {
-    t.Run("Success", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("Success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // 1. Mock successful query with expected deck data
-        expectedDecks := []Deck{
-            {ID: 1, Name: "Deck 1"},
-            {ID: 2, Name: "Deck 2"},
-            {ID: 3, Name: "Deck 3"}, // Adding more decks for a thorough test
-        }
+		// 1. Mock successful query with expected deck data
+		expectedDecks := []Deck{
+			{ID: 1, Name: "Deck 1"},
+			{ID: 2, Name: "Deck 2"},
+			{ID: 3, Name: "Deck 3"}, // Adding more decks for a thorough test
+		}
 
-        rows := sqlmock.NewRows([]string{"id", "name"})
-        for _, deck := range expectedDecks {
-            rows.AddRow(deck.ID, deck.Name)
-        }
-        mock.ExpectQuery("SELECT \\* FROM decks").WillReturnRows(rows)
+		rows := sqlmock.NewRows([]string{"id", "name"})
+		for _, deck := range expectedDecks {
+			rows.AddRow(deck.ID, deck.Name)
+		}
+		mock.ExpectQuery("SELECT \\* FROM decks").WillReturnRows(rows)
 
-        // 2. Call the function
-        decks, err := GetDecksData(db)
+		// 2. Call the function
+		decks, err := GetDecksData(db)
 
-        // 3. Assert expected results
-        assert.NoError(t, err)
-        assert.NotNil(t, decks)
-        assert.Equal(t, expectedDecks, *decks)
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// 3. Assert expected results
+		assert.NoError(t, err)
+		assert.NotNil(t, decks)
+		assert.Equal(t, expectedDecks, *decks)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 
-    t.Run("QueryError", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("QueryError", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // Mock an error when fetching decks
-        mock.ExpectQuery("SELECT \\* FROM decks").WillReturnError(fmt.Errorf("query error"))
+		// Mock an error when fetching decks
+		mock.ExpectQuery("SELECT \\* FROM decks").WillReturnError(fmt.Errorf("query error"))
 
-        // Call the function and expect an error
-        decks, err := GetDecksData(db)
-        assert.Error(t, err)
-        assert.Nil(t, decks)
-        assert.EqualError(t, err, "error getting decks: query error")
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// Call the function and expect an error
+		decks, err := GetDecksData(db)
+		assert.Error(t, err)
+		assert.Nil(t, decks)
+		assert.EqualError(t, err, "error getting decks: query error")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 
-    t.Run("ScanError", func(t *testing.T) {
-        db, mock, err := sqlmock.New()
-        if err != nil {
-            t.Fatalf("error creating mock database: %v", err)
-        }
-        defer db.Close()
+	t.Run("ScanError", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
 
-        // Mock invalid data returned from the database to trigger a Scan() error
-        mock.ExpectQuery("SELECT \\* FROM decks").
-            WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
-                AddRow("invalid", 123)) // Inconsistent data types
+		// Mock invalid data returned from the database to trigger a Scan() error
+		mock.ExpectQuery("SELECT \\* FROM decks").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
+				AddRow("invalid", 123)) // Inconsistent data types
 
-        // Call the function and expect an error
-        decks, err := GetDecksData(db)
-        assert.Error(t, err)
-        assert.Nil(t, decks)
-        assert.Contains(t, err.Error(), "error scanning deck:") // Check for partial error message
-        assert.NoError(t, mock.ExpectationsWereMet())
-    })
+		// Call the function and expect an error
+		decks, err := GetDecksData(db)
+		assert.Error(t, err)
+		assert.Nil(t, decks)
+		assert.Contains(t, err.Error(), "error scanning deck:") // Check for partial error message
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestDeleteCard(t *testing.T) {
@@ -713,6 +714,38 @@ func TestDeleteCardByID(t *testing.T) {
 		mock.ExpectExec("DELETE FROM cards").WillReturnError(fmt.Errorf("error deleting card"))
 
 		err = DeleteCardByID(db, 99)
+		assert.Error(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestDeleteDeckByID(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
+
+		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM decks WHERE id = $1")).
+			WithArgs(1).                            // Example deck ID
+			WillReturnResult(sqlmock.NewResult(0, 1)) // 1 row affected
+
+		err = DeleteDeckByID(db, 1)
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("error creating mock database: %v", err)
+		}
+		defer db.Close()
+
+		mock.ExpectExec("DELETE FROM decks").WillReturnError(fmt.Errorf("some database error"))
+
+		err = DeleteDeckByID(db, 123)
 		assert.Error(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})

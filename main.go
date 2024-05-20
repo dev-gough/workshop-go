@@ -166,7 +166,7 @@ func main() {
 	http.HandleFunc("/api/flashcard/rate", handlers.RateFlashcardHandler(database))
 	http.HandleFunc("/api/flashcard/cards/", handlers.GetCardsForDeckHandler(database))
 	http.HandleFunc("/api/flashcard/decks", handlers.GetDecksHandler(database))
-	http.HandleFunc("/api/flashcard/createdeck", handlers.NewDeckHandler(database))
+	http.HandleFunc("/api/flashcard/decks/", handlers.DeckHandler(database))
 
 	fs := http.FileServer(http.Dir("public"))
 	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))

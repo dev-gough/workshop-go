@@ -256,6 +256,15 @@ func DeleteCardByID(db *sql.DB, cardID int) error {
 	return nil
 }
 
+func DeleteDeckByID(db *sql.DB, deckID int) error {
+	fmt.Println("Deleting deck with ID:", deckID)
+    _, err := db.Exec("DELETE FROM decks WHERE id = $1", deckID)
+    if err != nil {
+        return fmt.Errorf("error deleting deck: %w", err) // Wrap error for better context
+    }
+    return nil
+}
+
 func GetRandomCard(db *sql.DB) (*Card, error) {
 	// 1. Get the total number of cards
 	var count int
