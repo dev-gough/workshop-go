@@ -1,35 +1,25 @@
+/*
+    =====
+    SETUP
+    =====
+*/
+
 const ROWS = 40;
 const SMALL = 50;
 const MEDIUM = 70;
 const LARGE = 90;
 const gameBoard = document.getElementById('gameBoard');
 const MAX_STEPS = 10000;
+
 let isDragging = false;
+let isRunning = false;
 let STEP_SPEED = 100;
 let savedStates = [];
-const LOCAL_STORAGE_KEY = 'gameOfLifePatterns';
-
-function timeFunctionExecution(func) {
-    return function (...args) {
-        const start = performance.now(); // Start timing before executing the function
-        const result = func.apply(this, args); // Execute the function with its arguments
-        const end = performance.now(); // End timing after executing the function
-        if (end - start > 1) console.log(`Execution time for ${func}: ${end - start} ms`); // Log the execution time
-        return result; // Return the original function's result
-    };
-}
-
 
 if (ROWS < SMALL) GRIDSPACE = 20;
 else if (ROWS >= MEDIUM && ROWS < LARGE) GRIDSPACE = 10;
 else GRIDSPACE = 5;
 
-function handleClick(e) {
-    tar = document.getElementById(e.target.id);
-    tar.style.backgroundColor = tar.style.backgroundColor === 'white' ? 'black' : 'white';
-}
-
-const cells = document.querySelectorAll('.cell');
 const container = document.getElementById('gameBoard');
 
 container.addEventListener('mousedown', (e) => {
@@ -75,64 +65,18 @@ function createGrid() {
     }
 }
 
-function boundCoords(x, y) {
-    return [
-        Math.min(Math.max(x, 0), ROWS - 1),
-        Math.min(Math.max(y, 0), ROWS - 1)
-    ];
-}
-
-function handleReset() {
-    createGrid();
-    document.getElementById('states').innerHTML = '';
-    setTimeout(() => {
-        document.getElementById('step-label').innerText = `Step 0 / ${MAX_STEPS}`;
-    }, 10);
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function getNeighbours(cell) {
-    let [row, col] = cell.id.split('-').map(Number);
-    let neighbours = new Set();
-
-    // Get the 1-neighbourhood of the cell
-    for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-            if (i == 0 && j == 0) continue;
-            let [nRow, nCol] = boundCoords(row + i, col + j);
-            if (nRow == row && nCol == col) continue;
-            neighbours.add(`${nRow}-${nCol}`);
-            cell = document.getElementById(`${nRow}-${nCol}`);
-        }
-    }
-    return neighbours;
-}
-
-function getNeighbourhood(cellId, n) {
-    const [row, col] = cellId.split('-').map(Number);
-    const neighbourhood = new Set();
-
-    for (let i = -n; i <= n; i++) {
-        for (let j = -n; j <= n; j++) {
-            if (i === 0 && j === 0) continue; // skip the center cell
-            const coords = boundCoords(row + i, col + j);
-            if (coords) {
-                neighbourhood.add(`${coords[0]}-${coords[1]}`);
-            }
-        }
-    }
-
-    return neighbourhood;
-}
+/*
+    ===============
+    MAIN GAME LOGIC
+    ===============
+*/
 
 async function gameLoop() {
     let step = 0;
+    isRunning = true;
     STEP_SPEED = document.getElementById('step-speed').value;
 
-    while (step < MAX_STEPS) {
+    while (step < MAX_STEPS && isRunning) {
 
         document.getElementById('step-label').innerText = `Step: ${step} / ${MAX_STEPS}`;
         var cells = Array.from(gameBoard.querySelectorAll('.cell'));
@@ -169,28 +113,75 @@ async function gameLoop() {
     }
 }
 
-function saveGameState() {
-    const gameState = {
-        gridSize: ROWS,
-        cells: []
-    };
+/*
+    ================
+    HELPER FUNCTIONS
+    ================
+*/
 
-    const cells = gameBoard.querySelectorAll('.cell'); // Select all cells
-    cells.forEach(cell => {
-        const [row, col] = cell.id.split('-').map(Number); // Extract row and column from ID
-        if (cell.style.backgroundColor === 'black') {
-            gameState.cells.push({
-                row,
-                col,
-                alive: true
-            });
-        }
-    });
-
-    savedStates.push(createGridFromMinimumState(JSON.stringify(gameState)));
-    displaySavedGameStates();
-    createGrid();
+function boundCoords(x, y) {
+    return [
+        Math.min(Math.max(x, 0), ROWS - 1),
+        Math.min(Math.max(y, 0), ROWS - 1)
+    ];
 }
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getNeighbours(cell) {
+    let [row, col] = cell.id.split('-').map(Number);
+    let neighbours = new Set();
+
+    // Get the 1-neighbourhood of the cell
+    for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) continue;
+            let [nRow, nCol] = boundCoords(row + i, col + j);
+            if (nRow == row && nCol == col) continue;
+            neighbours.add(`${nRow}-${nCol}`);
+            cell = document.getElementById(`${nRow}-${nCol}`);
+        }
+    }
+    return neighbours;
+}
+
+function getNeighbourhood(cellId, n) {
+    const [row, col] = cellId.split('-').map(Number);
+    const neighbourhood = new Set();
+
+    for (let i = -n; i <= n; i++) {
+        for (let j = -n; j <= n; j++) {
+            if (i === 0 && j === 0) continue; // skip the center cell
+            const coords = boundCoords(row + i, col + j);
+            if (coords) {
+                neighbourhood.add(`${coords[0]}-${coords[1]}`);
+            }
+        }
+    }
+    return neighbourhood;
+}
+
+function handleClick(e) {
+    tar = document.getElementById(e.target.id);
+    tar.style.backgroundColor = tar.style.backgroundColor === 'white' ? 'black' : 'white';
+}
+
+function handleReset() {
+    isRunning = false;
+    createGrid();
+    document.getElementById('states').innerHTML = '';
+    setTimeout(() => {
+        document.getElementById('step-label').innerText = `Step 0 / ${MAX_STEPS}`;
+    }, 20);
+}
+
+/*
+    ================
+    STATE MANAGEMENT
+    ================
+*/
 
 function calculateMinimumSpace(gameStateJSON) {
     const gameState = JSON.parse(gameStateJSON);
@@ -242,43 +233,6 @@ function createGridFromMinimumState(gameStateJSON) {
     return stateGrid;
 }
 
-function mapCoordinatesToMinimumGrid(gameState, minimumGrid) {
-    // 1. Extract necessary information
-    const { cells } = gameState;
-    const [minRows, minCols] = minimumGrid;
-
-    // 2. Calculate offsets (shifts)
-    let minRow = Infinity, minCol = Infinity;
-    for (const cell of cells) {
-        minRow = Math.min(minRow, cell.row);
-        minCol = Math.min(minCol, cell.col);
-    }
-
-    // 3. Create mapping function
-    const mapCoordinate = (oldRow, oldCol) => {
-        const newRow = oldRow - minRow;
-        const newCol = oldCol - minCol;
-
-        if (newRow < 0 || newRow >= minRows || newCol < 0 || newCol >= minCols) {
-            throw new Error("Invalid coordinates. Cell outside minimum grid.");
-        }
-
-        return { row: newRow, col: newCol };
-    };
-
-    // 4. Map all cell coordinates
-    const mappedCells = cells.map(cell => ({
-        ...cell,
-        ...mapCoordinate(cell.row, cell.col)
-    }));
-
-    // 5. Return updated game state
-    return {
-        ...gameState,
-        cells: mappedCells
-    };
-}
-
 function displaySavedGameStates() {
     const statesContainer = document.getElementById('states');
     statesContainer.innerHTML = ''; // Clear previous states
@@ -327,6 +281,43 @@ function loadGameState() {
 
 }
 
+function mapCoordinatesToMinimumGrid(gameState, minimumGrid) {
+    // 1. Extract necessary information
+    const { cells } = gameState;
+    const [minRows, minCols] = minimumGrid;
+
+    // 2. Calculate offsets (shifts)
+    let minRow = Infinity, minCol = Infinity;
+    for (const cell of cells) {
+        minRow = Math.min(minRow, cell.row);
+        minCol = Math.min(minCol, cell.col);
+    }
+
+    // 3. Create mapping function
+    const mapCoordinate = (oldRow, oldCol) => {
+        const newRow = oldRow - minRow;
+        const newCol = oldCol - minCol;
+
+        if (newRow < 0 || newRow >= minRows || newCol < 0 || newCol >= minCols) {
+            throw new Error("Invalid coordinates. Cell outside minimum grid.");
+        }
+
+        return { row: newRow, col: newCol };
+    };
+
+    // 4. Map all cell coordinates
+    const mappedCells = cells.map(cell => ({
+        ...cell,
+        ...mapCoordinate(cell.row, cell.col)
+    }));
+
+    // 5. Return updated game state
+    return {
+        ...gameState,
+        cells: mappedCells
+    };
+}
+
 function printStateJSON() {
     const selectedState = document.querySelector('.state-grid.selected');
     if (!selectedState) {
@@ -341,9 +332,38 @@ function printStateJSON() {
         alive: cell.style.backgroundColor === 'black' // Assuming this indicates 'alive'
     }));
 
-    const stateJSON = JSON.stringify({ cells: cellData , gridSize: ROWS});
+    const stateJSON = JSON.stringify({ cells: cellData, gridSize: ROWS });
     console.log(stateJSON);
 }
+
+function saveGameState() {
+    const gameState = {
+        gridSize: ROWS,
+        cells: []
+    };
+
+    const cells = gameBoard.querySelectorAll('.cell'); // Select all cells
+    cells.forEach(cell => {
+        const [row, col] = cell.id.split('-').map(Number); // Extract row and column from ID
+        if (cell.style.backgroundColor === 'black') {
+            gameState.cells.push({
+                row,
+                col,
+                alive: true
+            });
+        }
+    });
+
+    savedStates.push(createGridFromMinimumState(JSON.stringify(gameState)));
+    displaySavedGameStates();
+    createGrid();
+}
+
+/*
+    ====
+    MISC
+    ====
+*/
 
 document.getElementById('resetbtn').onclick = handleReset;
 document.getElementById('save-pattern').onclick = saveGameState;
