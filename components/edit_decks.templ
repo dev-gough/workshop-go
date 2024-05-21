@@ -1,0 +1,127 @@
+package components
+
+templ EditDeck() {
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    @Header()
+    <div class="flex justify-center min-h-screen">
+        <div 
+            class="container max-w-2/3 flex flex-col border border-gray-300 rounded-lg p-6"
+            hx-get="/api/flashcard/cards/{deck_id}" 
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <div class="flex justify-end mb-4">  
+                <button
+                    id="createButton"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
+                    onclick="showCreateCardForm()"
+                >
+                    Create
+                </button>
+                <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onclick="deleteSelectedCard()">
+                    Delete
+                </button>
+            </div>
+
+            <h2 class="text-2xl font-semibold mb-4">Edit Cards</h2>
+            
+            <script>
+                let selectedCard = null;
+                const container = document.querySelector('.container');
+                
+                // Extract deck_id from the current URL
+                const currentUrl = window.location.href;
+                const deckIdMatch = currentUrl.match(/\/edit\/(\d+)/);
+                const deckId = deckIdMatch ? deckIdMatch[1] : null;
+
+                if (deckId) {
+                    // Update hx-get attribute with the extracted deck_id
+                    container.setAttribute('hx-get', `/api/flashcard/cards/${deckId}`);
+                } else {
+                    console.error('Deck ID not found in URL');
+                    // Optionally, handle this error (e.g., show a message to the user)
+                }
+
+                function fetchCards() {
+                    container.innerHTML = container.children[0].outerHTML + container.children[1].outerHTML; // Keep the heading and buttons
+                    fetch(`/api/flashcard/cards/${deckId}`)
+                        .then(response => response.json())
+                        .then(cards => {
+                            cards.forEach(card => {
+                                let cardHTML = `
+                                    <div class="card bg-gray-100 rounded-lg p-6 mb-4 cursor-pointer" id="card-${card.id}" onclick="selectCard(${card.id})">
+                                        <p>Front: ${card.front}</p>
+                                        <p>Back: ${card.back}</p>
+                                    </div>
+                                `;
+                                container.innerHTML += cardHTML;
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching cards:', error);
+                        });
+                }
+
+                function selectCard(cardId) {
+                    const card = document.getElementById(`card-${cardId}`);
+                    if (selectedCard && selectedCard.id === `card-${cardId}`) {
+                        card.classList.remove('bg-blue-200');
+                        selectedCard = null; // Deselect if clicking the same card
+                    } else {
+                        if (selectedCard) {
+                            selectedCard.classList.remove('bg-blue-200');
+                        }
+                        card.classList.add('bg-blue-200');
+                        selectedCard = card;
+                    }
+                }
+
+                function showCreateCardForm() {
+                    // Check if the form already exists
+                    if (document.getElementById('createCardForm')) {
+                        return; 
+                    }
+
+                    const createCardForm = `
+                        <div class="card bg-gray-100 rounded-lg p-6 mb-4" id="createCardForm">
+                            <input type="text" id="cardFront" placeholder="Front" class="border rounded-md p-2 mb-2 w-full" />
+                            <input type="text" id="cardBack" placeholder="Back" class="border rounded-md p-2 mb-2 w-full" />
+                            <button onclick="removeCreateCardForm()" class="bg-gray-400 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mr-2">
+                                Cancel
+                            </button>
+                            <button id="btn-card-submit" onclick="handleCreateCard()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Submit
+                            </button>
+                        </div>
+                    `;
+                    container.innerHTML = createCardForm + container.innerHTML;
+                    document.getElementById('cardFront').focus();
+                    document.getElementById('cardFront').addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter') {
+                            event.preventDefault(); // Prevent form submission if inside a form
+                            document.getElementById('btn-card-submit').click();
+                        }
+                    });
+                }
+
+                function removeCreateCardForm() {
+                    const form = document.getElementById('createCardForm');
+                    if (form) {
+                        form.remove();
+                    }
+                }
+
+                // You'll need to implement handleCreateCard() function to actually create the card
+                // in your backend and update the UI accordingly.
+
+                fetchCards(); 
+            </script>
+
+            <style>
+                .card {
+                    transition: background-color 0.3s ease;
+                }
+            </style>
+        </div>
+    </div>
+}

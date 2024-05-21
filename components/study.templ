@@ -1,0 +1,111 @@
+package components
+
+templ Study() {
+    <body class="bg-gray-400">
+        <script src="https://unpkg.com/htmx.org@1.8.4"></script>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+        @Header()
+        <div class="lg:w-2/3 mx-auto">
+            <div class="flex justify-center items-center h-screen bg-blue-100">
+                <div class="text-center">
+                    <div
+                        id="flashcard-content"
+                        class="bg-white rounded-md shadow-md h-64 w-96 flex items-center justify-center mb-4"
+                        hx-get="/api/flashcard/cards/{deck_id}"
+                        hx-trigger="load"
+                        hx-target="#flashcard-content"
+                    ></div>
+                    <button
+                        onclick="flipCard()"
+                        class="bg-green-400 hover:bg-green-600 text-white px-4 py-2 rounded transition duration-300"
+                    >
+                        Flip Card
+                    </button>
+                    <div class="mt-4">
+                        <div class="flex justify-center items-center">
+                            <label for="rating1" class="mr-2">1</label>
+                            <input type="radio" id="rating1" name="rating" value="1" class="form-radio h-5 w-5 text-green-600"/>
+                            <label for="rating2" class="mx-2">2</label>
+                            <input type="radio" id="rating2" name="rating" value="2" class="form-radio h-5 w-5 text-green-600"/>
+                            <label for="rating3" class="mx-2">3</label>
+                            <input type="radio" id="rating3" name="rating" value="3" class="form-radio h-5 w-5 text-green-600"/>
+                            <label for="rating4" class="mx-2">4</label>
+                            <input type="radio" id="rating4" name="rating" value="4" class="form-radio h-5 w-5 text-green-600"/>
+                            <label for="rating5" class="ml-2">5</label>
+                            <input type="radio" id="rating5" name="rating" value="5" class="form-radio h-5 w-5 text-green-600"/>
+                        </div>
+                    </div>
+                    <div class="mt-5">
+                        <button
+                            class="bg-blue-400 hover:bg-blue-600 text-white px-4 py-2 rounded transition duration-300"
+                            hx-post="/api/flashcard/rate"
+                            hx-trigger="click"
+                            hx-swap="none"
+                            id="submit-rating"
+                        >
+                            Submit Rating
+                        </button>
+                        <button
+                            class="bg-red-400 hover:bg-red-600 text-white px-4 py-2 rounded transition duration-300"
+                            hx-get="/api/flashcard/cards/{deck_id}"
+                            hx-trigger="click"
+                            hx-target="#flashcard-content"
+                            hx-vals=""
+                        >
+                            Skip Card
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var frontContent = '';
+            var backContent = '';
+            var showingFront = true;
+            var id;
+            
+            // Extract deck_id from the current URL
+            const currentUrl = window.location.href;
+            const deckIdMatch = currentUrl.match(/\/decks\/(\d+)\/study/);
+            const deckId = deckIdMatch ? deckIdMatch[1] : null; // Default to null if not found
+
+            if (deckId) {
+                // Update hx-get attributes with the extracted deck_id
+                const flashcardContent = document.getElementById('flashcard-content');
+                flashcardContent.setAttribute('hx-get', `/api/flashcard/cards/${deckId}`);
+                document.querySelector('.bg-red-400').setAttribute('hx-get', `/api/flashcard/cards/${deckId}`);
+            } else {
+                console.error('Deck ID not found in URL');
+                // Optionally, handle this error (e.g., show a message to the user)
+            }
+
+            document.addEventListener('htmx:afterRequest', function (event) {
+                if (event.detail.target.id === 'flashcard-content') {
+                    var data = event.detail.xhr.response;
+                    try {
+                        var json = JSON.parse(data);
+                        // Select a random card from the JSON array
+                        var randomIndex = Math.floor(Math.random() * json.length);
+                        frontContent = json[randomIndex].front;
+                        backContent = json[randomIndex].back;
+                        id = json[randomIndex].id;
+                        document.getElementById('flashcard-content').innerText = frontContent;
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+            });
+
+            function flipCard() {
+                var cardContent = document.getElementById('flashcard-content');
+                cardContent.innerText = showingFront ? backContent : frontContent;
+                showingFront = !showingFront;
+            }
+
+            document.getElementById('submit-rating').addEventListener('click', function () {
+                var selectedRating = document.querySelector('input[name="rating"]:checked').value;
+                this.setAttribute('hx-vals', JSON.stringify({ ID: id, Rating: selectedRating }));
+            });
+        </script>
+    </body>
+}

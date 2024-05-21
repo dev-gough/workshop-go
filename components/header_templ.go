@@ -23,7 +23,7 @@ func Header() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<header id=\"header\" class=\"bg-gray-800 text-white p-4 flex justify-between items-center\"><a href=\"/home\" class=\"text-lg font-bold\">Workshop</a><nav class=\"space-x-4\"><a href=\"/projects\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Projects</a> <a href=\"/learn\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Learn</a> <a href=\"/data\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Data</a> <a href=\"/about\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">About</a></nav></header>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<header id=\"header\" class=\"bg-gray-800 text-white p-4 flex justify-between items-center\"><div class=\"flex items-center space-x-4\"><a href=\"/home\" class=\"text-lg font-bold\">Workshop</a> <button onclick=\"history.back()\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Back</button></div><nav class=\"space-x-4\"><a href=\"/projects\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Projects</a> <a href=\"/learn\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Learn</a> <a href=\"/data\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">Data</a> <a href=\"/about\" class=\"px-4 hover:bg-gray-600 bg-gray-700 py-2 rounded-md\">About</a></nav></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

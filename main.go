@@ -7,6 +7,7 @@ import (
 	"learn_go/db"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -92,7 +93,6 @@ var mockFlashcards = []db.Card{
 	},
 }
 
-
 func updateDifficulty(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -143,6 +143,23 @@ func setHeaderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// maybe temp
+
+type dynamicHandler struct {
+    pattern *regexp.Regexp
+    handler func(http.ResponseWriter, *http.Request)
+}
+
+func (h dynamicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    if h.pattern.MatchString(r.URL.Path) {
+        h.handler(w, r)
+        return
+    }
+    http.NotFound(w, r)
+}
+
+func StudyHandler(w http.ResponseWriter, r *http.Request) { templ.Handler(components.Study()).ServeHTTP(w, r)}
+func EditHandler(w http.ResponseWriter, r *http.Request) { templ.Handler(components.EditDeck()).ServeHTTP(w, r)}
 func main() {
 	database, _ := db.ConnectToDB()
 	defer database.Close()
@@ -161,6 +178,16 @@ func main() {
 	http.Handle("/home", templ.Handler(components.Home()))
 	http.Handle("/projects/flashcard", templ.Handler(components.Decks()))
 	http.Handle("/projects/flashcard/random", templ.Handler(components.Flashcard()))
+
+	http.Handle("/projects/flashcard/decks/", dynamicHandler{
+		pattern: regexp.MustCompile(`^/projects/flashcard/decks/(\d+)/study`),
+		handler: StudyHandler,
+	})
+
+	http.Handle("/projects/flashcard/edit/", dynamicHandler{
+		pattern: regexp.MustCompile(`^/projects/flashcard/edit/(\d+)`),
+		handler: EditHandler,
+	})
 
 	http.HandleFunc("/api/flashcard", handlers.RandomFlashcardHandler(database))
 	http.HandleFunc("/api/flashcard/rate", handlers.RateFlashcardHandler(database))

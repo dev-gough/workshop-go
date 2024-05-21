@@ -1,28 +1,28 @@
 package components
 
 templ Decks() {
-	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
-	@Header()
-	<div class="flex justify-center min-h-screen">
-		<div
-			class="container max-w-2/3 flex flex-col border border-gray-300 rounded-lg p-6"
-			hx-get="/api/flashcard/decks"
-			hx-trigger="load"
-			hx-swap="outerHTML"
-		>
-			<div class="flex justify-end mb-4">
-				<button
-					id="createButton"
-					class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
-					onclick="showCreateDeckForm()"
-				>
-					Create
-				</button>
-				<button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onclick="deleteSelectedDeck()">
-					Delete
-				</button>
-			</div>
-			<script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    @Header()
+    <div class="flex justify-center min-h-screen">
+        <div
+            class="container max-w-2/3 flex flex-col border border-gray-300 rounded-lg p-6"
+            hx-get="/api/flashcard/decks"
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <div class="flex justify-end mb-4">
+                <button
+                    id="createButton"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
+                    onclick="showCreateDeckForm()"
+                >
+                    Create
+                </button>
+                <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onclick="deleteSelectedDeck()">
+                    Delete
+                </button>
+            </div>
+            <script>
                 let selectedDeck = null;
                 const container = document.querySelector('.container');
 
@@ -36,11 +36,16 @@ templ Decks() {
                                 let deckHTML = `
                                     <div class="deck bg-gray-100 rounded-lg p-6 text-center mb-4 cursor-pointer flex justify-between items-center" id="${deck.id}" onclick="selectDeck(${deck.id})">
                                         <h3 class="text-lg font-semibold">Deck ${deck.id}: ${deck.name}</h3>
-                                        <a href="/projects/flashcard/decks/${deck.id}/study">
-                                            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                                Study
+                                        <div class="flex space-x-2">
+                                            <a href="/projects/flashcard/decks/${deck.id}/study">
+                                                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                    Study
+                                                </button>
+                                            </a>
+                                            <button id="edit-button-${deck.id}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded hidden" onclick="window.location.href = '/projects/flashcard/edit/${deck.id}'">
+                                                Edit Cards
                                             </button>
-                                        </a>
+                                        </div>
                                     </div>
                                 `;
                                 container.innerHTML += deckHTML;
@@ -51,15 +56,23 @@ templ Decks() {
 
                 function selectDeck(deckId) {
                     const deck = document.getElementById(deckId);
+                    const editButton = document.getElementById(`edit-button-${deckId}`); // Get the edit button
+
                     if (selectedDeck && selectedDeck.id === deckId.toString()) {
                         deck.classList.remove('bg-blue-200');
-                        selectedDeck = null; // Deselect if clicking the same deck
+                        selectedDeck = null;
+                        editButton.classList.add('hidden'); // Hide the edit button when deselecting
                     } else {
                         if (selectedDeck) {
                             selectedDeck.classList.remove('bg-blue-200');
+                            const previousEditButton = document.getElementById(`edit-button-${selectedDeck.id}`);
+                            if (previousEditButton) {
+                                previousEditButton.classList.add('hidden'); // Hide previous button if it exists
+                            }
                         }
                         deck.classList.add('bg-blue-200');
                         selectedDeck = deck;
+                        editButton.classList.remove('hidden'); // Show the edit button when selecting
                     }
                 }
 
@@ -142,14 +155,15 @@ templ Decks() {
                         alert("Please select a deck to delete.");
                     }
                 }
+
                 // Initial trigger
                 fetchDecks();
             </script>
-			<style>
+            <style>
                 .deck {
                     transition: background-color 0.3s ease; /* Smooth transition for visual feedback */
                 }
             </style>
-		</div>
-	</div>
+        </div>
+    </div>
 }
