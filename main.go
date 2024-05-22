@@ -160,6 +160,7 @@ func (h dynamicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func StudyHandler(w http.ResponseWriter, r *http.Request) { templ.Handler(components.Study()).ServeHTTP(w, r)}
 func EditHandler(w http.ResponseWriter, r *http.Request) { templ.Handler(components.EditDeck()).ServeHTTP(w, r)}
+
 func main() {
 	database, _ := db.ConnectToDB()
 	defer database.Close()
@@ -194,6 +195,7 @@ func main() {
 	http.HandleFunc("/api/flashcard/cards/", handlers.GetCardsForDeckHandler(database))
 	http.HandleFunc("/api/flashcard/decks", handlers.GetDecksHandler(database))
 	http.HandleFunc("/api/flashcard/decks/", handlers.DeckHandler(database))
+	http.HandleFunc("/api/flashcard/cards", handlers.CardHandler(database))
 
 	fs := http.FileServer(http.Dir("public"))
 	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))

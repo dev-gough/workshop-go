@@ -43,7 +43,7 @@ templ EditDeck() {
                 }
 
                 function fetchCards() {
-                    container.innerHTML = container.children[0].outerHTML + container.children[1].outerHTML; // Keep the heading and buttons
+                    container.innerHTML = container.children[0].outerHTML + container.children[1].outerHTML + container.children[2].outerHTML; // Keep the heading and buttons
                     fetch(`/api/flashcard/cards/${deckId}`)
                         .then(response => response.json())
                         .then(cards => {
@@ -111,9 +111,87 @@ templ EditDeck() {
                     }
                 }
 
-                // You'll need to implement handleCreateCard() function to actually create the card
-                // in your backend and update the UI accordingly.
+                async function handleCreateCard() {
+                    const front = document.getElementById("cardFront").value;
+                    const back = document.getElementById("cardBack").value;
 
+                    // Check if both fields are filled
+                    if (!front || !back) {
+                        alert("Please fill in both the front and back of the card.");
+                        return;
+                    }
+
+                    const cardData = { front, back };
+
+                    try {
+                        const response = await fetch('/api/flashcard/cards', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(cardData)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response}`);
+                        }
+
+                        const responseData = await response.json();
+                        console.log(responseData); // Log the response from the server
+
+                        // Update the UI to reflect the new card (e.g., add it to the list of cards)
+                        fetchCards();
+
+                        // Clear the input fields
+                        document.getElementById("cardFront").value = "";
+                        document.getElementById("cardBack").value = "";
+
+                        // Close the form
+                        removeCreateCardForm();
+                    } catch (error) {
+                        console.error('Error creating card:', error);
+                        // Handle errors gracefully, perhaps display an error message to the user
+                    }
+                }
+
+                async function deleteSelectedCard() {
+                    if (!selectedCard) {
+                        alert("No card selected.");
+                        return;
+                    }
+
+                    const confirmDelete = confirm("Are you sure you want to delete this card?");
+                    if (!confirmDelete) {
+                        return;
+                    }
+
+                    const cardId = parseInt(selectedCard.id.replace("card-", ""));
+
+                    try {
+                        const response = await fetch('/api/flashcard/cards', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ id: cardId })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        const responseData = await response.json();
+                        console.log(responseData);
+
+                        // Update the UI to remove the deleted card
+                        selectedCard.remove();
+                        selectedCard = null;
+                        fetchCards(); // Refresh the card list in case of changes
+                    } catch (error) {
+                        console.error('Error deleting card:', error);
+                        // Handle errors gracefully, perhaps display an error message to the user
+                    }
+                }
                 fetchCards(); 
             </script>
 

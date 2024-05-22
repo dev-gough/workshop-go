@@ -107,9 +107,6 @@ func ConnectToDB(opts ...Option) (*sql.DB, error) {
 		opt(defaultOptions)
 	}
 
-	//fmt.Printf("Connecting to database with options: %v\n", defaultOptions)
-
-	// I have removed the error handling for the sake of simplicity
 	db, _ := sql.Open("postgres", defaultOptions.psqlInfo)
 
 	// Force a connection check to ensure DB exists and is connected.
@@ -168,14 +165,20 @@ func DropAllTables(db *sql.DB) error {
 	return nil
 }
 
-func InsertCards(db *sql.DB, cards []Card) error {
-	for _, card := range cards {
-		_, err := db.Exec("INSERT INTO cards (front, back, recency, prevdifficulty) VALUES ($1, $2, $3, $4)", card.Front, card.Back, card.Reviewed, card.Difficulty)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func InsertCards(db *sql.DB, cards []Card) ([]int, error) {
+    // Slice to store IDs of inserted cards
+    var insertedIDs []int
+
+    for _, card := range cards {
+        var id int
+        err := db.QueryRow("INSERT INTO cards (front, back, recency, prevdifficulty) VALUES ($1, $2, $3, $4) RETURNING id", card.Front, card.Back, card.Reviewed, card.Difficulty).Scan(&id)
+        if err != nil {
+            return nil, err // Return nil IDs and the error
+        }
+        insertedIDs = append(insertedIDs, id)
+    }
+
+    return insertedIDs, nil
 }
 
 func AddCardToDeck(db *sql.DB, cardID int, deckID int) error {
@@ -191,12 +194,13 @@ func AddCardToDeck(db *sql.DB, cardID int, deckID int) error {
 	return nil
 }
 
-func InsertDeck(db *sql.DB, deckName string) error {
-	_, err := db.Exec("INSERT INTO decks (name) VALUES ($1)", deckName)
-	if err != nil {
-		return err
-	}
-	return nil
+func InsertDeck(db *sql.DB, deckName string) (int64, error) {
+    var id int64
+    err := db.QueryRow("INSERT INTO decks (name) VALUES ($1) RETURNING id", deckName).Scan(&id)
+    if err != nil {
+        return 0, err // Return 0 to indicate no ID was obtained
+    }
+    return id, nil
 }
 
 func PrintCards(db *sql.DB) error {

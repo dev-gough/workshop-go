@@ -228,15 +228,19 @@ func TestInsertCards(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec("INSERT INTO cards").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery("INSERT INTO cards").
+			WithArgs("Front", "Back", 1, 5).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-		err = InsertCards(db, []Card{{ID: 1, Front: "Front", Back: "Back", Reviewed: 1, Difficulty: 5}})
+		ids, err := InsertCards(db, []Card{{Front: "Front", Back: "Back", Reviewed: 1, Difficulty: 5}})
 		assert.NoError(t, err)
+		assert.Equal(t, []int{1}, ids)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("there were unfulfilled expectations: %v", err)
 		}
 	})
+
 	t.Run("Error", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		if err != nil {
@@ -244,9 +248,11 @@ func TestInsertCards(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec("INSERT INTO cards").WillReturnError(fmt.Errorf("error inserting card"))
+		mock.ExpectQuery("INSERT INTO cards").
+			WithArgs("Front", "Back", 1, 0).
+			WillReturnError(fmt.Errorf("error inserting card"))
 
-		err = InsertCards(db, []Card{{ID: 1, Front: "Front", Back: "Back", Reviewed: 1}})
+		_, err = InsertCards(db, []Card{{Front: "Front", Back: "Back", Reviewed: 1, Difficulty: 0}})
 		assert.Error(t, err)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
@@ -263,15 +269,19 @@ func TestInsertDeck(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec("INSERT INTO decks").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery("INSERT INTO decks").
+			WithArgs("Deck1").
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
 
-		err = InsertDeck(db, "Deck1")
+		id, err := InsertDeck(db, "Deck1")
 		assert.NoError(t, err)
+		assert.Equal(t, int64(1), id)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("there were unfulfilled expectations: %v", err)
 		}
 	})
+
 	t.Run("Error", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		if err != nil {
@@ -279,10 +289,11 @@ func TestInsertDeck(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec("INSERT INTO decks").WillReturnError(fmt.Errorf("error inserting deck"))
+		mock.ExpectQuery("INSERT INTO decks").
+			WithArgs("Deck1").
+			WillReturnError(fmt.Errorf("error inserting deck"))
 
-		_ = InsertDeck(db, "Deck1")
-		err = InsertDeck(db, "Deck1")
+		_, err = InsertDeck(db, "Deck1")
 		assert.Error(t, err)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
@@ -728,7 +739,7 @@ func TestDeleteDeckByID(t *testing.T) {
 		defer db.Close()
 
 		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM decks WHERE id = $1")).
-			WithArgs(1).                            // Example deck ID
+			WithArgs(1).                              // Example deck ID
 			WillReturnResult(sqlmock.NewResult(0, 1)) // 1 row affected
 
 		err = DeleteDeckByID(db, 1)
