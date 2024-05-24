@@ -155,7 +155,7 @@ func DropTable(db *sql.DB, tableName string) error {
 }
 
 func DropAllTables(db *sql.DB) error {
-	tables := []string{"card_deck", "cards", "decks"}
+	tables := []string{"deck_cards", "cards", "decks"}
 
 	for _, table := range tables {
 		if err := DropTable(db, table); err != nil {
@@ -166,19 +166,30 @@ func DropAllTables(db *sql.DB) error {
 }
 
 func InsertCards(db *sql.DB, cards []Card) ([]int, error) {
-    // Slice to store IDs of inserted cards
-    var insertedIDs []int
+	// Slice to store IDs of inserted cards
+	var insertedIDs []int
 
-    for _, card := range cards {
-        var id int
-        err := db.QueryRow("INSERT INTO cards (front, back, recency, prevdifficulty) VALUES ($1, $2, $3, $4) RETURNING id", card.Front, card.Back, card.Reviewed, card.Difficulty).Scan(&id)
-        if err != nil {
-            return nil, err // Return nil IDs and the error
-        }
-        insertedIDs = append(insertedIDs, id)
-    }
+	for _, card := range cards {
+		var id int
+		err := db.QueryRow("INSERT INTO cards (front, back, recency, prevdifficulty) VALUES ($1, $2, $3, $4) RETURNING id", card.Front, card.Back, card.Reviewed, card.Difficulty).Scan(&id)
+		if err != nil {
+			return nil, err // Return nil IDs and the error
+		}
+		insertedIDs = append(insertedIDs, id)
+	}
 
-    return insertedIDs, nil
+	return insertedIDs, nil
+}
+
+func UpdateCard(db *sql.DB, card Card) error {
+	_, err := db.Exec("UPDATE cards SET front = $1, back = $2, recency = $3, prevdifficulty = $4 WHERE id = $5",
+		card.Front, card.Back, card.Reviewed, card.Difficulty, card.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func AddCardToDeck(db *sql.DB, cardID int, deckID int) error {
@@ -195,12 +206,12 @@ func AddCardToDeck(db *sql.DB, cardID int, deckID int) error {
 }
 
 func InsertDeck(db *sql.DB, deckName string) (int64, error) {
-    var id int64
-    err := db.QueryRow("INSERT INTO decks (name) VALUES ($1) RETURNING id", deckName).Scan(&id)
-    if err != nil {
-        return 0, err // Return 0 to indicate no ID was obtained
-    }
-    return id, nil
+	var id int64
+	err := db.QueryRow("INSERT INTO decks (name) VALUES ($1) RETURNING id", deckName).Scan(&id)
+	if err != nil {
+		return 0, err // Return 0 to indicate no ID was obtained
+	}
+	return id, nil
 }
 
 func PrintCards(db *sql.DB) error {
@@ -216,7 +227,7 @@ func PrintCards(db *sql.DB) error {
 		var reviewed int64
 		var difficulty int
 
-		rows.Scan(&id, &front, &back, &reviewed, &difficulty)  // trunk-ignore(golangci-lint/errcheck)
+		rows.Scan(&id, &front, &back, &reviewed, &difficulty) // trunk-ignore(golangci-lint/errcheck)
 		fmt.Printf("Front: %s, Back: %s, ID: %d, Reviewed: %d, Difficulty: %d\n", front, back, id, reviewed, difficulty)
 	}
 	return nil
@@ -237,7 +248,7 @@ func PrintCardsInDeck(db *sql.DB, deckID int) error {
 	fmt.Printf("Cards in deck %d:\n", deckID)
 	for rows.Next() {
 		var card Card
-		rows.Scan(&card.ID, &card.Front, &card.Back, &card.Reviewed, &card.Difficulty)  // trunk-ignore(golangci-lint/errcheck)
+		rows.Scan(&card.ID, &card.Front, &card.Back, &card.Reviewed, &card.Difficulty) // trunk-ignore(golangci-lint/errcheck)
 		fmt.Printf("- ID: %d, Front: %s, Back: %s\n", card.ID, card.Front, card.Back)
 	}
 
@@ -261,12 +272,11 @@ func DeleteCardByID(db *sql.DB, cardID int) error {
 }
 
 func DeleteDeckByID(db *sql.DB, deckID int) error {
-	fmt.Println("Deleting deck with ID:", deckID)
-    _, err := db.Exec("DELETE FROM decks WHERE id = $1", deckID)
-    if err != nil {
-        return fmt.Errorf("error deleting deck: %w", err) // Wrap error for better context
-    }
-    return nil
+	_, err := db.Exec("DELETE FROM decks WHERE id = $1", deckID)
+	if err != nil {
+		return fmt.Errorf("error deleting deck: %w", err) // Wrap error for better context
+	}
+	return nil
 }
 
 func GetRandomCard(db *sql.DB) (*Card, error) {
@@ -325,7 +335,6 @@ func GetDecksData(db *sql.DB) (*[]Deck, error) {
 		return nil, fmt.Errorf("error getting decks: %v", err)
 	}
 	defer rows.Close()
-
 
 	decks := []Deck{}
 

@@ -10,7 +10,14 @@ templ EditDeck() {
             hx-trigger="load"
             hx-swap="outerHTML"
         >
-            <div class="flex justify-end mb-4">  
+            <div class="flex justify-end mb-4">
+                <button
+                    id="editButton"
+                    class="hidden bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
+                    onclick="showEditCardForm()"
+                >
+                    Edit
+                </button>
                 <button
                     id="createButton"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
@@ -64,15 +71,97 @@ templ EditDeck() {
 
                 function selectCard(cardId) {
                     const card = document.getElementById(`card-${cardId}`);
+                    const editButton = document.getElementById('editButton');
+
                     if (selectedCard && selectedCard.id === `card-${cardId}`) {
                         card.classList.remove('bg-blue-200');
+                        editButton.classList.add('hidden');
                         selectedCard = null; // Deselect if clicking the same card
                     } else {
                         if (selectedCard) {
                             selectedCard.classList.remove('bg-blue-200');
+                            editButton.classList.add('hidden');
                         }
                         card.classList.add('bg-blue-200');
                         selectedCard = card;
+                        editButton.classList.remove('hidden');
+                    }
+                }
+
+                function showEditCardForm() {
+                    if (!selectedCard) return; // Do nothing if no card is selected
+
+                    // Remove existing createCardForm if present
+                    removeCreateCardForm();
+
+                    const cardId = parseInt(selectedCard.id.replace("card-", ""));
+                    const front = selectedCard.querySelector('p:first-of-type').textContent.replace('Front: ', '');
+                    const back = selectedCard.querySelector('p:last-of-type').textContent.replace('Back: ', '');
+
+                    const editCardForm = `
+                        <div class="card bg-gray-100 rounded-lg p-6 mb-4" id="createCardForm">
+                            <input type="text" id="cardFront" placeholder="Front" class="border rounded-md p-2 mb-2 w-full" value="${front}"/>
+                            <input type="text" id="cardBack" placeholder="Back" class="border rounded-md p-2 mb-2 w-full" value="${back}"/>
+                            <button onclick="removeCreateCardForm()" class="bg-gray-400 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mr-2">
+                                Cancel
+                            </button>
+                            <button id="btn-card-submit" onclick="handleEditCard(${cardId})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Save
+                            </button>
+                        </div>
+                    `;
+                    container.innerHTML = editCardForm + container.innerHTML;
+                    document.getElementById('cardFront').focus();
+                    document.getElementById('createCardForm').addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter') {
+                            event.preventDefault(); // Prevent form submission if inside a form
+                            document.getElementById('btn-card-submit').click();
+                        }
+                    });
+                }
+
+                async function handleEditCard(cardId) {
+                    const front = document.getElementById("cardFront").value;
+                    const back = document.getElementById("cardBack").value;
+
+                    // Basic validation (add more as needed)
+                    if (!front || !back) {
+                        alert("Please fill in both the front and back of the card.");
+                        return;
+                    }
+
+                    const cardData = {
+                        id: cardId,
+                        front: front,
+                        back: back,
+                        recency: 0, // Placeholder for now
+                        prevdifficulty: 0 // Placeholder for now
+                    };
+
+                    try {
+                        const response = await fetch('/api/flashcard/cards', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(cardData)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        const responseData = await response.json();
+                        console.log(responseData); // Log the response from the server (for debugging)
+
+                        // Update the UI to reflect the changes
+                        fetchCards(); // Or you could directly update the specific card element
+
+                        // Close the form (optional)
+                        removeCreateCardForm();
+                    } catch (error) {
+                        console.error('Error editing card:', error);
+                        // Handle the error appropriately (show a message to the user, etc.)
                     }
                 }
 
@@ -96,7 +185,7 @@ templ EditDeck() {
                     `;
                     container.innerHTML = createCardForm + container.innerHTML;
                     document.getElementById('cardFront').focus();
-                    document.getElementById('cardFront').addEventListener('keydown', function(event) {
+                    document.getElementById('createCardForm').addEventListener('keydown', function(event) {
                         if (event.key === 'Enter') {
                             event.preventDefault(); // Prevent form submission if inside a form
                             document.getElementById('btn-card-submit').click();

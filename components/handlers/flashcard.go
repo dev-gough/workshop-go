@@ -292,8 +292,40 @@ func CardHandler(data *sql.DB) http.HandlerFunc {
 				http.Error(w, "Error encoding decks", http.StatusInternalServerError)
 				return
 			}
-        } else {
-            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        } else if r.Method == http.MethodPut {
+            // Decode the updated card data from the request body
+            var updatedCard db.Card
+            if err := json.NewDecoder(r.Body).Decode(&updatedCard); err != nil {
+                http.Error(w, "Invalid request body", http.StatusBadRequest)
+                return
+            }
+
+            // Validate card data (similar to how you validate in POST)
+            if updatedCard.Front == "" || updatedCard.Back == "" || updatedCard.ID == 0 {
+                http.Error(w, "Front, back, and ID are required", http.StatusBadRequest)
+                return
+            }
+
+            // Update the card in the database
+            err := db.UpdateCard(data, updatedCard)
+            if err != nil {
+                http.Error(w, "Error updating card", http.StatusInternalServerError)
+                return
+            }
+
+            // Respond with success
+            w.Header().Set("Content-Type", "application/json")
+            response := struct {
+                Message string  `json:"message"`
+                Card    db.Card `json:"card"`
+            }{
+                Message: "Card updated successfully",
+                Card:    updatedCard,
+            }
+            if err := json.NewEncoder(w).Encode(response); err != nil {
+                http.Error(w, "Error encoding response", http.StatusInternalServerError)
+                return
+            }
         }
     }
 }
