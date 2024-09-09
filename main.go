@@ -48,7 +48,7 @@ func main() {
 	database, _ := db.ConnectToDB()
 	defer database.Close()
 
-	db.CreateAllTables(database, db.CurrentTables)
+	_ = db.CreateAllTables(database, db.CurrentTables)
 
 	http.Handle("/projects/gol", templ.Handler(components.GOLPage()))
 	http.Handle("/home", templ.Handler(components.Home()))
@@ -72,7 +72,8 @@ func main() {
 	http.HandleFunc("/api/flashcard/decks/", handlers.DeckHandler(database))
 	http.HandleFunc("/api/flashcard/cards", handlers.CardHandler(database))
 
-	fs := http.FileServer(http.Dir("public"))
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/", fs)
 	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

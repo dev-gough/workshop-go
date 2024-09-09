@@ -67,6 +67,7 @@ templ EditDeck() {
                         .catch(error => {
                             console.error('Error fetching cards:', error);
                         });
+                    editButton.classList.add('hidden');
                 }
 
                 function selectCard(cardId) {
@@ -134,8 +135,8 @@ templ EditDeck() {
                         id: cardId,
                         front: front,
                         back: back,
-                        recency: 0, // Placeholder for now
-                        prevdifficulty: 0 // Placeholder for now
+                        recency: 0, // TODO Placeholder for now
+                        prevdifficulty: 0 // TODO Placeholder for now
                     };
 
                     try {
@@ -226,7 +227,6 @@ templ EditDeck() {
                         }
 
                         const responseData = await response.json();
-                        console.log(responseData); // Log the response from the server
 
                         // Update the UI to reflect the new card (e.g., add it to the list of cards)
                         fetchCards();

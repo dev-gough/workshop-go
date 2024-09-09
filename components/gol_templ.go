@@ -10,6 +10,28 @@ import "context"
 import "io"
 import "bytes"
 
+/* templ GOLPage() {
+
+<body class="bg-gray-200 h-screen w-screen m-0 p-0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="/static/gol.js" defer></script>
+    <div class="flex flex-col h-full">
+        @Header()
+        <div class="flex-grow grid justify-items-center items-center">
+            <canvas class="border border-black m-0 p-0 box-border w-full h-full" id="gameCanvas"></canvas>
+            <div class="flex justify-between w-full px-4">
+                <div class="flex space-x-2">
+                    <button class="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onclick="startGame()">Start</button>
+                    <button class="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onclick="stopGame()">Stop</button>
+                </div>
+                <input type="file" id="fileInput" accept=".txt" />
+                <div class="text-xl mt-3" id="generationCounter">Generation: 0</div>
+            </div>
+        </div>
+    </div>
+</body>
+} */
+
 func GOLPage() templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
@@ -23,7 +45,7 @@ func GOLPage() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<body class=\"bg-gray-200\"><link href=\"https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css\" rel=\"stylesheet\"><style>\n        /* Set the grid item size */\n        .grid-item-s {\n            height: 20px;\n            height: 20px;\n        }\n\n        .grid-item-m {\n            width: 10px;\n            height: 10px;\n        }\n\n        .grid-item-l {\n            width: 5px;\n            height: 5px;\n        }\n\n        .selected {\n            background-color: #ef4444;\n        }\n        </style><script src=\"/static/gol.js\" defer></script><div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<body class=\"bg-gray-200 h-screen w-screen m-0 p-0\"><link href=\"https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css\" rel=\"stylesheet\"><script src=\"/static/gol.js\" defer></script><div class=\"flex flex-col h-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -31,7 +53,7 @@ func GOLPage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div id=\"container\" class=\"bg-gray-200 grid grid-cols-4 w-full\"><div class=\"col-span-1 relative\"><h2 id=\"l1\" class=\"absolute top-1/3 left-1/2 transform -translate-x-1/2 text-lg font-semibold\">Stored Patterns</h2><div class=\"absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2\"><button id=\"save-pattern\" class=\"bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded\">Save</button> <button id=\"load-pattern\" class=\"bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded\">Load</button></div><div id=\"states\" class=\"grid grid-rows-[repeat(auto-fit, minmax(200px, 1fr));] absolute bottom-0 left-0 w-full h-[calc(100%-theme(height.header))] bg-white border border-gray-300\">Testing</div></div><div class=\"col-span-2\"><div class=\"flex flex-col\"><div class=\"grid grid-cols-3 grid-rows-3\"><h1 class=\"text-lg font-mono col-start-2\">The Game of Life</h1><p id=\"step-label\" class=\"text-md text-gray-600\"></p><button class=\"bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg mt-4 mx-5\" onclick=\"gameLoop()\">Start</button> <textarea id=\"step-speed\" class=\"mt-4 mx-5 rounded-md\"></textarea> <button id=\"resetbtn\" class=\"bg-blue-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mx-5 mt-4 col-start-3\">Reset</button><p class=\"col-start-2 text-center\">Step Speed</p></div><div id=\"gameBoard\" class=\"max-w-max mx-auto\"></div></div></div><div class=\"col-span-1\"></div></div></div></body>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!-- This div acts as the flex container for the canvas and buttons --><div class=\"flex-grow flex flex-col items-center justify-center\"><!-- Canvas that grows to fill all available space --><canvas class=\"border border-black m-0 p-0 w-full h-full\" id=\"gameCanvas\"></canvas><!-- Buttons aligned below the canvas --><div class=\"flex justify-between w-full p-4\"><div class=\"flex space-x-2\"><button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"startGame()\">Start</button> <button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"stopGame()\">Stop</button></div><input type=\"file\" id=\"fileInput\" accept=\".txt\"><div class=\"text-xl mt-3\" id=\"generationCounter\">Generation: 0</div></div></div></div></body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
