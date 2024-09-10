@@ -171,6 +171,13 @@ function stopGame() {
     clearInterval(intervalId);
 }
 
+function resetGame() {
+    gridState = createEmptyGrid();
+    newGridState = createEmptyGrid();
+    generation = 0;
+    generationCounterElement.textContent = "Generation: 0";
+    drawGridToOffscreen();
+}
 // (Optional) Add buttons or UI elements to start/stop the game and change the tick rate
 canvas.addEventListener("click", (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -193,12 +200,31 @@ canvas.addEventListener("click", (event) => {
     ctx.drawImage(offscreenCanvas, 0, 0);
 });
 
-drawGridToOffscreen();
-ctx.drawImage(offscreenCanvas, 0, 0);
-
 document
     .getElementById("loadPatternsButton")
     .addEventListener("click", handlePatternPopup, false);
+
+let selectedFile = null;
+
+// Add event listeners for close and load actions only once when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    const fileModal = document.getElementById('fileModal');
+    const closeModalButton = document.getElementById('closeModalButton');
+    const loadFileButton = document.getElementById('loadFileButton');
+
+    closeModalButton.addEventListener('click', () => {
+        fileModal.classList.add('hidden');
+    });
+
+    loadFileButton.addEventListener('click', async () => {
+        if (selectedFile) {
+            await handlePatternLoad(selectedFile); // Wait for the pattern load to complete
+            fileModal.classList.add('hidden');
+        } else {
+            alert('Please select a file');
+        }
+    });
+});
 
 async function handlePatternLoad(file) {
     if (!file) return;
@@ -215,7 +241,6 @@ async function handlePatternLoad(file) {
         const minGrid = calculateMinGrid(patternBlocks, 5);
         gridState = createGameState(minGrid, numRows, numCols); // Define the game board size
         drawGridToOffscreen();
-        ctx.drawImage(offscreenCanvas, 0, 0);
     } catch (e) {
         console.error('error loading pattern', e)
     }
@@ -224,9 +249,7 @@ async function handlePatternLoad(file) {
 async function handlePatternPopup(event) {
     const fileModal = document.getElementById('fileModal');
     const fileGrid = document.getElementById('fileGrid');
-    const closeModalButton = document.getElementById('closeModalButton');
-    const loadFileButton = document.getElementById('loadFileButton');
-    let selectedFile = null;
+    selectedFile = null;
 
     fileModal.classList.remove('hidden');
 
@@ -254,19 +277,6 @@ async function handlePatternPopup(event) {
     } catch (e) {
         console.error('error getting patterns', e)
     }
-
-    closeModalButton.addEventListener('click', () => {
-        fileModal.classList.add('hidden')
-    })
-
-    loadFileButton.addEventListener('click', async () => {
-        if (selectedFile) {
-            handlePatternLoad(selectedFile)
-            fileModal.classList.add('hidden')
-        } else {
-            alert('Please select a file')
-        }
-    })
 }
 
 function parseLifeFile(content) {
