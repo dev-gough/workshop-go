@@ -10,28 +10,6 @@ import "context"
 import "io"
 import "bytes"
 
-/* templ GOLPage() {
-
-<body class="bg-gray-200 h-screen w-screen m-0 p-0">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-    <script src="/static/gol.js" defer></script>
-    <div class="flex flex-col h-full">
-        @Header()
-        <div class="flex-grow grid justify-items-center items-center">
-            <canvas class="border border-black m-0 p-0 box-border w-full h-full" id="gameCanvas"></canvas>
-            <div class="flex justify-between w-full px-4">
-                <div class="flex space-x-2">
-                    <button class="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onclick="startGame()">Start</button>
-                    <button class="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onclick="stopGame()">Stop</button>
-                </div>
-                <input type="file" id="fileInput" accept=".txt" />
-                <div class="text-xl mt-3" id="generationCounter">Generation: 0</div>
-            </div>
-        </div>
-    </div>
-</body>
-} */
-
 func GOLPage() templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
@@ -53,7 +31,7 @@ func GOLPage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!-- This div acts as the flex container for the canvas and buttons --><div class=\"flex-grow flex flex-col items-center justify-center\"><!-- Canvas that grows to fill all available space --><canvas class=\"border border-black m-0 p-0 w-full h-full\" id=\"gameCanvas\"></canvas><!-- Buttons aligned below the canvas --><div class=\"flex justify-between w-full p-4\"><div class=\"flex space-x-2\"><button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"startGame()\">Start</button> <button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"stopGame()\">Stop</button></div><input type=\"file\" id=\"fileInput\" accept=\".txt\"><div class=\"text-xl mt-3\" id=\"generationCounter\">Generation: 0</div></div></div></div></body>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"flex-grow flex flex-col items-center justify-center\"><canvas class=\"border border-black m-0 p-0 w-full h-full\" id=\"gameCanvas\"></canvas><div class=\"flex justify-between w-full p-4\"><div class=\"flex space-x-2\"><button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"startGame()\">Start</button> <button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" onclick=\"stopGame()\">Stop</button></div><button class=\"px-4 py-2 border border-gray-700 bg-gray-300 rounded-md\" id=\"loadPatternsButton\">Load Patterns</button><div class=\"text-xl mt-3\" id=\"generationCounter\">Generation: 0</div><div id=\"fileModal\" class=\"hidden absolute inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center\"><div class=\"bg-white p-6 rounded-lg max-w-4xl w-full\"><h2 class=\"text-2xl mb-4\">Select a Pattern</h2><div id=\"fileGrid\" class=\"grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4\"><!-- File items will be populated here --></div><button id=\"loadFileButton\" class=\"mt-4 px-4 py-2 bg-green-500 text-white rounded\">Load</button> <button id=\"closeModalButton\" class=\"mt-4 px-4 py-2 bg-red-500 text-white rounded\">Close</button></div></div></div></div></div></body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

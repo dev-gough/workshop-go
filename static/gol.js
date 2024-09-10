@@ -197,31 +197,81 @@ drawGridToOffscreen();
 ctx.drawImage(offscreenCanvas, 0, 0);
 
 document
-    .getElementById("fileInput")
-    .addEventListener("change", handleFile, false);
+    .getElementById("loadPatternsButton")
+    .addEventListener("click", handlePatternPopup, false);
 
-
-function handleFile(event) {
-    const file = event.target.files[0];
+async function handlePatternLoad(file) {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
+    try {
+        const res = await fetch(`/api/gol/patterns/${file}`)
+        if (!res.ok) throw new Error('Failed to fetch pattern')
+        const data = await res.json()
+        const content = data.contents
+
         gridState = createEmptyGrid();
         newGridState = createEmptyGrid();
-        const content = e.target.result;
         const patternBlocks = parseLifeFile(content);
         const minGrid = calculateMinGrid(patternBlocks, 5);
-
         gridState = createGameState(minGrid, numRows, numCols); // Define the game board size
         drawGridToOffscreen();
         ctx.drawImage(offscreenCanvas, 0, 0);
-    };
-    reader.readAsText(file);
+    } catch (e) {
+        console.error('error loading pattern', e)
+    }
+}
+
+async function handlePatternPopup(event) {
+    const fileModal = document.getElementById('fileModal');
+    const fileGrid = document.getElementById('fileGrid');
+    const closeModalButton = document.getElementById('closeModalButton');
+    const loadFileButton = document.getElementById('loadFileButton');
+    let selectedFile = null;
+
+    fileModal.classList.remove('hidden');
+
+    try {
+        const res = await fetch('/api/gol/patterns')
+        if (!res.ok) throw new Error('Failed to fetch patterns')
+        const files = await res.json()
+
+        fileGrid.innerHTML = ''
+
+        files.forEach(file => {
+            const fileDiv = document.createElement('div')
+            fileDiv.className = 'p-4 border border-gray-300 rounded text-center cursor-pointer';
+            fileDiv.textContent = file;
+
+            fileDiv.addEventListener('click', () => {
+                document.querySelectorAll('#fileGrid div').forEach(div => {
+                    div.classList.remove('bg-gray-200')
+                })
+                fileDiv.classList.add('bg-gray-200')
+                selectedFile = file
+            })
+            fileGrid.appendChild(fileDiv)
+        })
+    } catch (e) {
+        console.error('error getting patterns', e)
+    }
+
+    closeModalButton.addEventListener('click', () => {
+        fileModal.classList.add('hidden')
+    })
+
+    loadFileButton.addEventListener('click', async () => {
+        if (selectedFile) {
+            handlePatternLoad(selectedFile)
+            fileModal.classList.add('hidden')
+        } else {
+            alert('Please select a file')
+        }
+    })
 }
 
 function parseLifeFile(content) {
-    const lines = content.split("\n");
+    const normContent = content.replace(/\r\n|\r/g, "\n");
+    const lines = normContent.split("\n");
     const patternBlocks = [];
     let currentBlock = null;
 

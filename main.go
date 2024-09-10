@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"learn_go/components"
 	"learn_go/components/handlers"
 	"learn_go/db"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -44,6 +47,65 @@ func EditHandler(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(components.EditDeck()).ServeHTTP(w, r)
 }
 
+func ListPatternFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := os.ReadDir("./static/patterns")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var names []string
+
+	for _, file := range files {
+		if !file.IsDir() {
+			names = append(names, file.Name())
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(names); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// TODO: move to handlers package
+func GetFileContents(w http.ResponseWriter, r *http.Request) {
+	const patternDir = "./static/patterns/"
+	prefix := "/api/gol/patterns/"
+	fileName := strings.TrimPrefix(r.URL.Path, prefix)
+	if fileName == "" {
+		http.Error(w, "No file name provided", http.StatusBadRequest)
+		return
+	}
+
+	path := filepath.Join(patternDir, fileName)
+
+	// check if file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		http.Error(w, "File does not exist", http.StatusNotFound)
+		return
+	}
+
+	// convert file to json
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	res := map[string]string{
+		"filename": fileName,
+		"contents": string(contents),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	database, _ := db.ConnectToDB()
 	defer database.Close()
@@ -71,6 +133,8 @@ func main() {
 	http.HandleFunc("/api/flashcard/decks", handlers.GetDecksHandler(database))
 	http.HandleFunc("/api/flashcard/decks/", handlers.DeckHandler(database))
 	http.HandleFunc("/api/flashcard/cards", handlers.CardHandler(database))
+	http.HandleFunc("/api/gol/patterns", ListPatternFiles)
+	http.HandleFunc("/api/gol/patterns/", GetFileContents)
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/", fs)
