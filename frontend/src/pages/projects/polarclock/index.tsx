@@ -63,7 +63,7 @@ const PolarClock = () => {
 
     return (
         <div className="min-h-screen grid grid-rows-[auto_1fr] bg-slate-400">
-            <Header className="row-span-1" />
+            <Header className="row-span-1" projectName="Polar Clock" />
             <div className="w-full h-full row-span-1 flex flex-col justify-center items-center relative">
                 <div className="h-[90%] aspect-square">
                     <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
