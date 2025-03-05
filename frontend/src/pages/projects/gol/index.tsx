@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react'
 import Header from '../../../components/Header'
 
 const GRID_SIZE = 4
-const TICK_RATE = 50 // Ticks per second
 
 type GridCell = 0 | 1
 type Grid = GridCell[][]
@@ -22,6 +21,7 @@ const GameOfLife: React.FC = () => {
     const [showModal, setShowModal] = useState(false)
     const [patterns, setPatterns] = useState<string[]>([])
     const [selectedPattern, setSelectedPattern] = useState<string | null>(null)
+    const [tickRate, setTickRate] = useState(50)
 
     // Initialize canvas and handle resize
     useEffect(() => {
@@ -60,11 +60,11 @@ const GameOfLife: React.FC = () => {
     // Game loop
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined
-        if (isRunning) {
-            intervalId = setInterval(updateGrid, 1000 / TICK_RATE)
+        if (isRunning && tickRate > 0) {
+            intervalId = setInterval(updateGrid, 1000 / tickRate)
         }
         return () => clearInterval(intervalId)
-    }, [isRunning, numRows, numCols])
+    }, [isRunning, tickRate, numRows, numCols])
 
     // Utility functions
     const createEmptyGrid = (rows: number, cols: number): Grid => {
@@ -175,6 +175,8 @@ const GameOfLife: React.FC = () => {
         gridStateRef.current = createEmptyGrid(numRows, numCols)
         setGeneration(0)
         setIsRunning(false)
+        setSelectedPattern(null)
+        setTickRate(50)
         drawGridToOffscreen()
     }
 
@@ -292,23 +294,44 @@ const GameOfLife: React.FC = () => {
 
     return (
         <div className="h-screen w-screen flex flex-col overflow-hidden">
-            <Header projectName='Game of Life'/>
+            <Header projectName='Game of Life' />
             <div className="flex-grow flex flex-col items-center justify-center">
                 <canvas
                     ref={canvasRef}
                     className="border border-black m-0 p-0 w-full h-full"
                     onClick={handleCanvasClick}
                 />
-                <div className="flex w-full p-4 flex-shrink-0">
+                <div className="flex w-full p-4 flex-shrink-0 bg-gray-200">
                     <div className="w-1/3 flex justify-start">
                         <div className="flex space-x-2">
-                            <button className="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onClick={startGame}>Start</button>
-                            <button className="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onClick={stopGame}>Stop</button>
-                            <button className="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onClick={resetGame}>Reset</button>
+                            <button className="px-4 py-2 hover:bg-opacity-100 border border-gray-700 bg-opacity-50 bg-green-400 rounded-md" onClick={startGame}>Start</button>
+                            <button className="px-4 py-2 hover:bg-opacity-100 border border-gray-700 bg-opacity-50 bg-red-600 rounded-md" onClick={stopGame}>Stop</button>
+                            <button className="px-4 py-2 hover:bg-opacity-100 border border-gray-700 bg-opacity-50 bg-orange-400 rounded-md" onClick={resetGame}>Reset</button>
                         </div>
                     </div>
-                    <div className="w-1/3 flex justify-center">
-                        <button className="px-4 py-2 border border-gray-700 bg-gray-300 rounded-md" onClick={handleLoadPatterns}>Load Patterns</button>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-16 text-right text-md text-gray-600">{tickRate} TPS</div>
+                        <input
+                            type="range"
+                            min={0}
+                            max={60}
+                            value={tickRate}
+                            onChange={(e) => setTickRate(Number(e.target.value))}
+                            className="w-32"
+                        />
+                        <div className="relative inline-block">
+                            <button
+                                className="px-4 py-2 border border-gray-700 hover:bg-gray-400 bg-gray-300 rounded-md"
+                                onClick={handleLoadPatterns}
+                            >
+                                Load Patterns
+                            </button>
+                            {selectedPattern && (
+                                <span className="absolute top-1/2 left-full ml-2 transform -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
+                                    {selectedPattern}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="w-1/3 flex justify-end">
                         <div className="text-xl w-40 text-right whitespace-nowrap">Generation: {generation}</div>
