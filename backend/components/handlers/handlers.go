@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"learn_go/db"
 	"log"
 	"net/http"
@@ -11,6 +12,10 @@ import (
 	"strings"
 	"time"
 )
+
+type DeleteDeckReq struct {
+	ID int `json:"id"`
+}
 
 // RandomFlashcardHandler handles a GET request to /api/flashcard,
 // returning a random flashcard from all decks
@@ -36,7 +41,7 @@ func RandomFlashcardHandler(data *sql.DB) http.HandlerFunc {
 	}
 }
 
-func GetCardsForDeckHandler(data *sql.DB) http.HandlerFunc {
+/* func GetCardsForDeckHandler(data *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -57,36 +62,14 @@ func GetCardsForDeckHandler(data *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json") // Set JSON content type
+		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(cards); err != nil { // Encode cards as JSON
+		if err := json.NewEncoder(w).Encode(cards); err != nil {
 			http.Error(w, "Error encoding cards", http.StatusInternalServerError)
 			return
 		}
 	}
-}
-
-func GetDecksHandler(data *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		decks, err := db.GetDecksData(data)
-		if err != nil {
-			http.Error(w, "Error fetching decks", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json") // Set JSON content type
-
-		if err := json.NewEncoder(w).Encode(decks); err != nil { // Encode decks as JSON
-			http.Error(w, "Error encoding decks", http.StatusInternalServerError)
-			return
-		}
-	}
-}
+} */
 
 // RateFlashcardHandler handles POST requests to /api/flashcard/rate
 func RateFlashcardHandler(data *sql.DB) http.HandlerFunc {
@@ -96,13 +79,11 @@ func RateFlashcardHandler(data *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Parse form data
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Error parsing form data", http.StatusBadRequest)
 			return
 		}
 
-		// Access form values
 		idStr := r.FormValue("ID")
 		ratingStr := r.FormValue("Rating")
 
@@ -119,15 +100,40 @@ func RateFlashcardHandler(data *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Print form values
+		// TODO: Apply when rating system is done (NYI)
 		fmt.Printf("ID: %d, Rating: %d\n", id, rating)
 
 	}
 }
 
+//TODO: move if/else blocks to switch statements
+// Handles GET/POST/DELETE to /api/flashcard/decks
 func DeckHandler(data *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+
+		/*
+		switch r.Method {
+			case http.MethodGet:
+				http.Error(w, "not accepted", http.StatusMethodNotAllowed)
+			case http.MethodPost:
+			case http.MethodDelete:
+		} */
+
+		if r.Method == http.MethodGet {
+
+			decks, err := db.GetDecksData(data)
+			if err != nil {
+				http.Error(w, "Error fetching decks", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+
+			if err := json.NewEncoder(w).Encode(decks); err != nil {
+				http.Error(w, "Error encoding decks", http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPost {
 			// Decode the deck name from the request body
 			var deckName struct {
 				Name string `json:"name"`
@@ -137,20 +143,17 @@ func DeckHandler(data *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			// Check if the deck name is empty (add validation as needed)
+			// Check if the deck name is empty (TODO: add more validation)
 			if deckName.Name == "" {
 				http.Error(w, "Deck name cannot be empty", http.StatusBadRequest)
 				return
 			}
 
-			// Insert the deck into the database
 			_, err := db.InsertDeck(data, deckName.Name)
 			if err != nil {
 				http.Error(w, "Error creating deck", http.StatusInternalServerError)
 				return
 			}
-
-			// Optionally: You could return the ID of the newly created deck
 			response := struct {
 				DeckName string
 			}{
@@ -158,37 +161,76 @@ func DeckHandler(data *sql.DB) http.HandlerFunc {
 			}
 			w.Header().Set("Content-Type", "application/json")
 
-			if err := json.NewEncoder(w).Encode(response); err != nil { // Encode decks as JSON
+			if err := json.NewEncoder(w).Encode(response); err != nil {
 				http.Error(w, "Error encoding decks", http.StatusInternalServerError)
 				return
 			}
 		} else if r.Method == http.MethodDelete {
-			// Get the deck ID from the URL parameters (e.g., /api/flashcard/decks/123)
-			parts := strings.Split(r.URL.Path, "/")
-			id := parts[4]
-			deckID, err := strconv.Atoi(id)
+			body, err := io.ReadAll(r.Body)
+
 			if err != nil {
-				http.Error(w, "Invalid deck ID", http.StatusBadRequest)
+				http.Error(w, "Error reading request body", http.StatusBadRequest)
 				return
 			}
 
-			// Delete the deck from the database
-			err = db.DeleteDeckByID(data, deckID)
+			var req DeleteDeckReq
+			err = json.Unmarshal(body, &req)
+
 			if err != nil {
-				http.Error(w, "Error deleting deck", http.StatusInternalServerError)
+				http.Error(w, "Error unmarshaling req body data", http.StatusBadRequest)
 				return
 			}
 
-			// Respond with a success message or status
-			w.WriteHeader(http.StatusNoContent) // 204 No Content is common for successful DELETE
+			if req.ID == 0 {
+				http.Error(w, "Missing deck ID", http.StatusBadRequest)
+				return
+			}
+
+			err = db.DeleteDeckByID(data, req.ID)
+
+			if err != nil {
+				http.Error(w, "Error deleting deck", http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		}
 	}
 }
 
 func CardHandler(data *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			// ... (Decoding and validation from the previous implementation)
+		if r.Method == http.MethodGet {
+			var deckID struct {
+				ID int `json:"id"`
+			}
+
+			if err := json.NewDecoder(r.Body).Decode(&deckID); err != nil {
+				http.Error(w, "Invalid request body", http.StatusBadRequest)
+				return
+			}
+
+			// validation
+			if deckID.ID < 0 {
+				http.Error(w, "Invalid deck ID", http.StatusBadRequest)
+				return
+			}
+
+			cards, err := db.GetCardsFromDeck(data, deckID.ID)
+
+			if err == nil {
+				http.Error(w, "Error getting cards from deck", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+
+			if err := json.NewEncoder(w).Encode(cards); err != nil {
+				http.Error(w, "Error encoding cards", http.StatusInternalServerError)
+				return
+			}
+
+		} else if r.Method == http.MethodPost {
 			var cardData struct {
 				Front string `json:"front"`
 				Back  string `json:"back"`
@@ -199,14 +241,13 @@ func CardHandler(data *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			// Validate card data (add more checks as needed)
+			// Validate card data (TODO: add more checks)
 			if cardData.Front == "" || cardData.Back == "" {
 				http.Error(w, "Front and back content cannot be empty", http.StatusBadRequest)
 				fmt.Printf("Front and back content cannot be empty\n")
 				return
 			}
 
-			// Create the Card object
 			newCard, err := db.CreateCard(0, cardData.Front, cardData.Back, int64(time.Now().Nanosecond()), 0)
 			if err != nil {
 				http.Error(w, "Error creating card", http.StatusInternalServerError)
@@ -245,11 +286,10 @@ func CardHandler(data *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			// Respond with success
 			w.Header().Set("Content-Type", "application/json")
 			response := struct {
 				Message string  `json:"message"`
-				Card    db.Card `json:"card"` // Optional: Include card details
+				Card    db.Card `json:"card"`
 			}{
 				Message: "Card created and added to deck successfully",
 				Card:    newCard,
@@ -259,73 +299,68 @@ func CardHandler(data *sql.DB) http.HandlerFunc {
 				return
 			}
 		} else if r.Method == http.MethodDelete {
-            // Decode the card ID from the request body
-            var cardData struct {
-                ID int `json:"id"`
-            }
-            if err := json.NewDecoder(r.Body).Decode(&cardData); err != nil {
-                http.Error(w, "Invalid request body", http.StatusBadRequest)
-                return
-            }
+			var cardData struct {
+				ID int `json:"id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&cardData); err != nil {
+				http.Error(w, "Invalid request body", http.StatusBadRequest)
+				return
+			}
 
-            // Validate card ID (add more checks as needed)
-            if cardData.ID <= 0 {
-                http.Error(w, "Invalid card ID", http.StatusBadRequest)
-                return
-            }
+			// Validate card ID (TODO: add more checks)
+			if cardData.ID <= 0 {
+				http.Error(w, "Invalid card ID", http.StatusBadRequest)
+				return
+			}
 
-            // Delete the card from the database
-            err := db.DeleteCardByID(data, cardData.ID)
-            if err != nil {
-                http.Error(w, "Error deleting card", http.StatusInternalServerError)
-                return
-            }
+			err := db.DeleteCardByID(data, cardData.ID)
+			if err != nil {
+				http.Error(w, "Error deleting card", http.StatusInternalServerError)
+				return
+			}
 
-            // Respond with success
-            w.Header().Set("Content-Type", "application/json")
-            response := struct {
-                Message string `json:"message"`
-            }{
-                Message: "Card deleted successfully",
-            }
-            if err := json.NewEncoder(w).Encode(response); err != nil { // Encode decks as JSON
+			w.Header().Set("Content-Type", "application/json")
+			response := struct {
+				Message string `json:"message"`
+			}{
+				Message: "Card deleted successfully",
+			}
+			if err := json.NewEncoder(w).Encode(response); err != nil {
 				http.Error(w, "Error encoding decks", http.StatusInternalServerError)
 				return
 			}
-        } else if r.Method == http.MethodPut {
-            // Decode the updated card data from the request body
-            var updatedCard db.Card
-            if err := json.NewDecoder(r.Body).Decode(&updatedCard); err != nil {
-                http.Error(w, "Invalid request body", http.StatusBadRequest)
-                return
-            }
+		} else if r.Method == http.MethodPut {
+			var updatedCard db.Card
+			if err := json.NewDecoder(r.Body).Decode(&updatedCard); err != nil {
+				http.Error(w, "Invalid request body", http.StatusBadRequest)
+				return
+			}
 
-            // Validate card data (similar to how you validate in POST)
-            if updatedCard.Front == "" || updatedCard.Back == "" || updatedCard.ID == 0 {
-                http.Error(w, "Front, back, and ID are required", http.StatusBadRequest)
-                return
-            }
+			// Validate card data (similar to how you validate in POST)
+			// TODO: Think abt extracting validation as a separate method
+			if updatedCard.Front == "" || updatedCard.Back == "" || updatedCard.ID == 0 {
+				http.Error(w, "Front, back, and ID are required", http.StatusBadRequest)
+				return
+			}
 
-            // Update the card in the database
-            err := db.UpdateCard(data, updatedCard)
-            if err != nil {
-                http.Error(w, "Error updating card", http.StatusInternalServerError)
-                return
-            }
+			err := db.UpdateCard(data, updatedCard)
+			if err != nil {
+				http.Error(w, "Error updating card", http.StatusInternalServerError)
+				return
+			}
 
-            // Respond with success
-            w.Header().Set("Content-Type", "application/json")
-            response := struct {
-                Message string  `json:"message"`
-                Card    db.Card `json:"card"`
-            }{
-                Message: "Card updated successfully",
-                Card:    updatedCard,
-            }
-            if err := json.NewEncoder(w).Encode(response); err != nil {
-                http.Error(w, "Error encoding response", http.StatusInternalServerError)
-                return
-            }
-        }
-    }
+			w.Header().Set("Content-Type", "application/json")
+			response := struct {
+				Message string  `json:"message"`
+				Card    db.Card `json:"card"`
+			}{
+				Message: "Card updated successfully",
+				Card:    updatedCard,
+			}
+			if err := json.NewEncoder(w).Encode(response); err != nil {
+				http.Error(w, "Error encoding response", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
 }

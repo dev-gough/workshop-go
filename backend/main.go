@@ -136,15 +136,16 @@ func main() {
 		handler: EditHandler,
 	})
 
+	// TODO: Match CardHandler to remove the seperate endpoint for the /cards/, and unify with /cards.
+	// Flashcard API endpoints
 	http.HandleFunc("/api/flashcard", handlers.RandomFlashcardHandler(database))
 	http.HandleFunc("/api/flashcard/rate", handlers.RateFlashcardHandler(database))
-	http.HandleFunc("/api/flashcard/cards/", handlers.GetCardsForDeckHandler(database))
-	http.HandleFunc("/api/flashcard/decks", handlers.GetDecksHandler(database))
-	http.HandleFunc("/api/flashcard/decks/", handlers.DeckHandler(database))
+	http.HandleFunc("/api/flashcard/decks", handlers.DeckHandler(database))
 	http.HandleFunc("/api/flashcard/cards", handlers.CardHandler(database))
+
+	// GOL pattern API
 	http.HandleFunc("/api/gol/patterns", ListPatternFiles)
 	http.HandleFunc("/api/gol/patterns/", GetFileContents)
-
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/", fs)
 	http.Handle("/static/", setHeaderMiddleware(http.StripPrefix("/static/", fs)))
