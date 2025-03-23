@@ -163,30 +163,34 @@ func CardHandler(data *sql.DB) http.HandlerFunc {
 		switch r.Method {
 			//TODO: test this implementation (for unifying cards and cards/ endpoints)
 			case http.MethodGet:
-				var deckID struct {
-					ID int `json:"id"`
-				}
+				deckIDStr := r.URL.Query().Get("deckID")
 
-				if err := json.NewDecoder(r.Body).Decode(&deckID); err != nil {
-					http.Error(w, "Invalid request body", http.StatusBadRequest)
+				if deckIDStr == "" {
+					http.Error(w, "Missing ID param", http.StatusBadRequest)
 					return
 				}
 
-				// validation
-				if deckID.ID < 0 {
+				deckID, err := strconv.Atoi(deckIDStr)
+				if err != nil {
 					http.Error(w, "Invalid deck ID", http.StatusBadRequest)
 					return
 				}
 
-				cards, err := db.GetCardsFromDeck(data, deckID.ID)
 
-				if err == nil {
+				// validation
+				if deckID < 0 {
+					http.Error(w, "Invalid deck ID", http.StatusBadRequest)
+					return
+				}
+
+				cards, err := db.GetCardsFromDeck(data, deckID)
+
+				if err != nil {
 					http.Error(w, "Error getting cards from deck", http.StatusInternalServerError)
 					return
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-
 				if err := json.NewEncoder(w).Encode(cards); err != nil {
 					http.Error(w, "Error encoding cards", http.StatusInternalServerError)
 					return
